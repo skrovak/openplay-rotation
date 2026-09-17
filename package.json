@@ -1,0 +1,12 @@
+{
+  "name": "openplay-rotation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Open Play Rotation — pickleball court-queue management board",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
