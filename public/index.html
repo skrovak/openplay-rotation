@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Open Play Rotation</title>
 <style>[hidden]{display:none!important}</style>
+</head>
+<body>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -346,6 +349,11 @@
     border-radius:5px; padding:0 5px; flex-shrink:0;
   }
   .history-vs{ font-size:11px; color:var(--ink-muted); flex-shrink:0; }
+  .matchup-count{
+    font-family:var(--font-mono); font-size:10px; font-weight:600; color:var(--ink-muted);
+    background:var(--surface); border:1px solid var(--line); border-radius:5px;
+    padding:0 4px; margin-left:3px; white-space:nowrap; flex-shrink:0;
+  }
   .history-time{ font-family:var(--font-mono); font-size:11px; color:var(--ink-muted); flex-shrink:0; font-variant-numeric:tabular-nums; }
 
   /* ---------- leaderboard overlay ---------- */
@@ -365,7 +373,7 @@
   .close-btn{ background:transparent; border:none; color:var(--ink-muted); font-size:16px; cursor:pointer; padding:4px 9px; border-radius:6px; flex-shrink:0; }
   .close-btn:hover{ background:var(--surface-2); color:var(--ink); }
   .lb-scroll{ overflow-x:auto; }
-  .lb-header-row, .lb-row{ display:grid; grid-template-columns:34px 1fr 52px 52px 56px; gap:8px; align-items:center; padding:7px 4px; min-width:280px; }
+  .lb-header-row, .lb-row{ display:grid; grid-template-columns:34px 1fr 52px 52px 56px 68px; gap:8px; align-items:center; padding:7px 4px; min-width:340px; }
   .lb-header-row{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-muted); border-bottom:1px solid var(--line); padding-bottom:8px; }
   .lb-row{ border-bottom:1px solid var(--line); font-size:13.5px; }
   .lb-row:last-child{ border-bottom:none; }
@@ -392,8 +400,6 @@
   }
 </style>
 
-</head>
-<body>
 <div class="wrap">
 
   <header class="top">
@@ -486,7 +492,7 @@
       <input id="ratingMatchToggle" type="checkbox" style="width:auto;" />
       Only match players with the same rating
     </label>
-    <span class="hint" style="flex-basis:auto;max-width:260px;">Reducing courts sends players on a removed court back to the front of the queue. Turn off auto-select to fill each open court yourself. With same-rating matching on, set a player's rating from their match-history popup (click their name) — unrated players (no stars) only match with other unrated players. If there still aren't enough at the exact rating, a one-star-lower player who's winning more than average, or a one-star-higher player who's winning less than average, can bridge in to keep the queue moving.</span>
+    <span class="hint" style="flex-basis:auto;max-width:260px;">Reducing courts sends players on a removed court back to the front of the queue. Turn off auto-select to fill each open court yourself. Ending a game always leaves that court open on an editable preview first — swap or remove anyone before hitting "Auto-select players" to start it — auto-select just covers courts that are open for other reasons. With same-rating matching on, set a player's rating from their match-history popup (click their name) — unrated players (no stars) only match with other unrated players. If there still aren't enough at the exact rating, a one-star-lower player who's winning more than average, or a one-star-higher player who's winning less than average, can bridge in to keep the queue moving.</span>
   </div>
 
   <div class="board">
@@ -565,7 +571,7 @@
     <div id="lbEmpty" class="empty-panel" hidden>No games played yet this session.</div>
     <div id="lbTable" class="lb-scroll">
       <div class="lb-header-row">
-        <div></div><div>Player</div><div class="num">Wins</div><div class="num">Games</div><div class="num">Win %</div>
+        <div></div><div>Player</div><div class="num">Wins</div><div class="num">Games</div><div class="num">Win %</div><div class="num">Avg Wait</div>
       </div>
       <div id="lbBody"></div>
     </div>
@@ -663,6 +669,17 @@
     players[c1[1]].rating = 4;
     players[c2[0]].rating = 3;
     players[queueOrder[0]].rating = 5;
+
+    // demo a plausible average wait per player who's actually played a
+    // game or two, so the leaderboard's "Avg Wait" column isn't just a
+    // wall of dashes on first look.
+    c1.concat(c2, c3, queueOrder).forEach(function(id, i){
+      var p = players[id];
+      if(!p.gamesPlayed) return;
+      var avgMin = 6 + ((i * 3) % 9); // varies 6-14 min, deterministic
+      p.waitCount = p.gamesPlayed;
+      p.totalWaitMs = avgMin * 60000 * p.gamesPlayed;
+    });
 
     function mh(id){ return { id:id, name: players[id].name }; }
     var matchHistory = [
@@ -860,6 +877,10 @@
     changingUpcomingSlot = null;
     lastUpcomingMatches = [];
     autofillRequested = {};
+    courtPreviewOverrides = {};
+    changingCourtPreviewSlot = null;
+    lastCourtPreviews = {};
+    courtAutofillRequested = {};
     ensureCourtArrayLength();
     autofillCourts();
     persist();
@@ -914,6 +935,8 @@
       if(typeof p.partnerId !== "string") p.partnerId = null;
       if(typeof p.gender !== "string") p.gender = "";
       if(typeof p.rating !== "number" || p.rating < 0 || p.rating > 5) p.rating = 0;
+      if(typeof p.totalWaitMs !== "number") p.totalWaitMs = 0;
+      if(typeof p.waitCount !== "number") p.waitCount = 0;
     });
     if(!Array.isArray(s.courts)) s.courts = [];
     s.courts.forEach(function(c){
@@ -935,6 +958,10 @@
   var changingUpcomingSlot = null;   // {matchIndex, team, slotIndex} awaiting a swap-in selection in an Upcoming Match card (transient UI state)
   var lastUpcomingMatches = [];      // matchIndex -> {team1, team2} last computed/shown, so a fresh single-slot edit has a starting point (transient UI state)
   var autofillRequested = {};        // matchIndex -> true for one render, when the card's Auto-fill button was just clicked with an open seat present (transient UI state)
+  var courtPreviewOverrides = {};    // courtIndex -> {team1:[ids], team2:[ids]} manual edits to an open court's own "Up next" preview (transient UI state)
+  var changingCourtPreviewSlot = null; // {courtIndex, team, slotIndex} awaiting a swap-in selection in an open court's preview (transient UI state)
+  var lastCourtPreviews = {};        // courtIndex -> {team1, team2} last computed/shown for an open court, so a fresh single-slot edit has a starting point (transient UI state)
+  var courtAutofillRequested = {};   // courtIndex -> true for one render, when an open court preview's "Auto-fill open seat" button was just clicked (transient UI state)
 
   // ---------- core actions ----------
 
@@ -1005,6 +1032,34 @@
     if(!max || max <= 0) return false;
     var p = state.players[pid];
     return !!p && (p.gamesPlayed || 0) >= max;
+  }
+
+  // Rolls this player's current wait (queuedAt to right now) into their
+  // running total, right before they're actually seated — call this once
+  // per player, right before flipping their status to "court". Only
+  // counts an actual queue wait: someone brought straight in from resting
+  // never sat in line for this court, so their wait isn't touched.
+  function recordPlayerWait(pid){
+    var p = state.players[pid];
+    if(!p || p.status !== "queue") return;
+    var waitedMs = Date.now() - (p.queuedAt || Date.now());
+    p.totalWaitMs = (p.totalWaitMs || 0) + Math.max(0, waitedMs);
+    p.waitCount = (p.waitCount || 0) + 1;
+  }
+
+  // Null until this player has actually waited through at least one
+  // queue-to-court turn — mirrors winRateOf's "no evidence yet" null.
+  function avgWaitMsOf(pid){
+    var p = state.players[pid];
+    if(!p || !p.waitCount) return null;
+    return p.totalWaitMs / p.waitCount;
+  }
+
+  // Display text for the leaderboard / player-history popup — a dash
+  // before there's anything to average, same convention as win rate.
+  function avgWaitText(pid){
+    var ms = avgWaitMsOf(pid);
+    return ms === null ? "—" : fmtElapsed(ms);
   }
 
   // Given a set of units that together exactly fill both teams (a
@@ -1328,15 +1383,39 @@
     return split.team1.concat(split.team2);
   }
 
-  // Fills one specific open court, if there's a fair group ready for it.
-  // Returns true when it actually seated players.
+  // When a court's own "Up next" preview has been hand-edited
+  // (courtPreviewOverrides), honors it exactly at fill time — completing
+  // any still-open seats from whoever's actually available in the real
+  // queue right now (excluding anyone reserved by another manual edit
+  // elsewhere) — rather than falling back to the ordinary algorithm.
+  // Returns null (never seats anyone) if an open seat can't be filled.
+  function resolveCourtGroupForFill(courtIndex){
+    var override = courtPreviewOverrides[courtIndex];
+    if(!override) return pickNextGroup();
+    var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
+    var chosenIds = {};
+    override.team1.concat(override.team2).forEach(function(id){ if(id) chosenIds[id] = true; });
+    var reserved = reservedFromOverrides();
+    var pool = state.queueOrder.filter(function(id){
+      return !chosenIds[id] && !reserved[id] && !isMaxedOut(id);
+    });
+    var match = { team1: override.team1.slice(), team2: override.team2.slice() };
+    fillNullSlotsForMatch(match, teamSize, pool);
+    var combined = match.team1.concat(match.team2);
+    if(combined.length !== state.playersPerCourt || combined.some(function(id){ return !id; })) return null;
+    return combined;
+  }
+
+  // Fills one specific open court, if there's a fair group ready for it —
+  // honoring a manual edit to its own preview (see resolveCourtGroupForFill)
+  // when one is in effect. Returns true when it actually seated players.
   function fillCourt(courtIndex){
     var court = state.courts[courtIndex];
     if(!court || court.players.length > 0) return false;
-    var taken = pickNextGroup();
+    var taken = resolveCourtGroupForFill(courtIndex);
     if(!taken) return false;
     state.queueOrder = state.queueOrder.filter(function(id){ return taken.indexOf(id) === -1; });
-    taken.forEach(function(pid){ state.players[pid].status = "court"; });
+    taken.forEach(function(pid){ recordPlayerWait(pid); state.players[pid].status = "court"; });
     var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
     var team1 = taken.slice(0, teamSize), team2 = taken.slice(teamSize);
     recordTeammatePairs(team1);
@@ -1344,28 +1423,91 @@
     recordOpponentPairs(team1, team2);
     court.players = taken;
     court.startedAt = Date.now();
+    delete courtPreviewOverrides[courtIndex];
+    delete lastCourtPreviews[courtIndex];
+    delete courtAutofillRequested[courtIndex];
     return true;
+  }
+
+  // Cleans both manual-edit override maps (an open court's own "Up next"
+  // preview, and the Upcoming Matches cards further down) the same way —
+  // dropping any slot that no longer points at a waiting, eligible, not
+  // already-duplicated player — so every render starts from a valid set
+  // before anything reads them.
+  function cleanAllOverrides(){
+    state.courts.forEach(function(court, idx){
+      var norm = normalizeUpcomingOverride(courtPreviewOverrides[idx]);
+      if(norm) courtPreviewOverrides[idx] = norm;
+      else delete courtPreviewOverrides[idx];
+    });
+    var maxCards = 5;
+    for(var k=0;k<maxCards;k++){
+      var normU = normalizeUpcomingOverride(upcomingOverrides[k]);
+      if(normU) upcomingOverrides[k] = normU;
+      else delete upcomingOverrides[k];
+    }
+  }
+
+  // Every player id currently pinned by hand anywhere — an open court's
+  // own preview, or an Upcoming Matches card — shared between both
+  // systems so neither one's auto-fill ever double-picks someone the
+  // other has already placed.
+  function reservedFromOverrides(){
+    var reserved = {};
+    Object.keys(courtPreviewOverrides).forEach(function(idx){
+      courtPreviewOverrides[idx].team1.concat(courtPreviewOverrides[idx].team2).forEach(function(id){ if(id) reserved[id] = true; });
+    });
+    Object.keys(upcomingOverrides).forEach(function(idx){
+      upcomingOverrides[idx].team1.concat(upcomingOverrides[idx].team2).forEach(function(id){ if(id) reserved[id] = true; });
+    });
+    return reserved;
   }
 
   // Previews, without touching real state, which queued players would be
   // seated on each open court if it filled right now — courts are
   // considered in board order, each one "claiming" its group before the
   // next open court's preview is computed, so two open courts never
-  // preview overlapping players. Also hands back whatever's left in the
-  // simulated queue afterward, so the bottom "Queue Courts" section can
-  // keep going from there instead of re-showing the same matchups.
+  // preview overlapping players. An open court whose preview has been
+  // hand-edited (courtPreviewOverrides) shows that instead — still
+  // possibly with open seats of its own, filled from here only when its
+  // "Auto-fill open seat" button was just clicked (courtAutofillRequested).
+  // Also hands back whatever's left in the simulated queue afterward, so
+  // the bottom "Queue Courts" section (and this same court's own swap
+  // picker) can keep going from there instead of re-showing the same
+  // matchups.
   function computeQueuePreviews(){
     var previews = {};
-    var simQueue = state.queueOrder.slice();
+    var reserved = reservedFromOverrides();
+    var simQueue = state.queueOrder.filter(function(id){ return !reserved[id]; });
     var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
     state.courts.forEach(function(court, idx){
       if(court.players.length > 0) return;
+      var override = courtPreviewOverrides[idx];
+      if(override){
+        var match = { team1: override.team1.slice(), team2: override.team2.slice() };
+        if(courtAutofillRequested[idx]){
+          fillNullSlotsForMatch(match, teamSize, simQueue);
+          courtPreviewOverrides[idx] = { team1: match.team1.slice(), team2: match.team2.slice() };
+        }
+        delete courtAutofillRequested[idx];
+        previews[idx] = match;
+        lastCourtPreviews[idx] = match;
+        match.team1.concat(match.team2).forEach(function(id){
+          if(!id) return;
+          var pos = simQueue.indexOf(id);
+          if(pos !== -1) simQueue.splice(pos, 1);
+        });
+        return;
+      }
       var group = pickNextGroup(simQueue);
       if(group){
         simQueue = simQueue.filter(function(id){ return group.indexOf(id) === -1; });
-        previews[idx] = { team1: group.slice(0, teamSize), team2: group.slice(teamSize) };
+        var g = { team1: group.slice(0, teamSize), team2: group.slice(teamSize) };
+        previews[idx] = g;
+        lastCourtPreviews[idx] = g;
       }else{
         previews[idx] = null;
+        delete lastCourtPreviews[idx];
       }
     });
     return { byCourt: previews, leftoverQueue: simQueue };
@@ -1412,6 +1554,15 @@
     render();
   }
 
+  // Checking someone in only joins the queue — it deliberately does NOT
+  // call autofillCourts(), even if a court happens to be open right now.
+  // A newly checked-in player shows up in the Waiting Queue and in the
+  // Upcoming Matches preview right away (both already reflect the queue
+  // live), but an actual court only starts once someone explicitly fills
+  // it (the "Auto-select players" button). This keeps checking a batch of
+  // people in from silently kicking off a match nobody asked to start yet
+  // — same reasoning as why ending a game doesn't auto-start the next one
+  // either (see finalizeEndGame).
   function checkInFromRoster(pid){
     var p = state.players[pid];
     if(!p || p.status !== "roster") return;
@@ -1420,7 +1571,6 @@
     p.queuedAt = Date.now();
     state.queueOrder.push(pid);
     sortQueueByWaitTime();
-    autofillCourts();
     render();
   }
 
@@ -1518,6 +1668,12 @@
   function renderImportPreview(){
     var text = document.getElementById("importText").value;
     var names = parseImportText(text);
+    // Alphabetical rather than whatever order they were pasted/uploaded
+    // in — easier to scan for a specific name in a long RSVP list, and
+    // this same order carries through to the roster once they're
+    // imported (the "Import selected" click just reads the checkboxes
+    // in the order they appear here).
+    names.sort(function(a, b){ return a.localeCompare(b, undefined, { sensitivity:"base" }); });
     var existing = existingActiveNamesLower();
     var preview = document.getElementById("importPreview");
     var summary = document.getElementById("importSummary");
@@ -1613,7 +1769,12 @@
     if(changingCourtSlot && changingCourtSlot.courtIndex === courtIndex) changingCourtSlot = null;
     delete courtNotices[courtIndex];
     sortQueueByWaitTime();
-    autofillCourts();
+    // Deliberately does NOT call autofillCourts() — ending a game always
+    // leaves this court open on its own editable "Up next" preview (same
+    // swap ⇄ / remove ✕ / "+ Choose" controls as any other open court),
+    // even with "Auto-select players for open courts" turned on, so there's
+    // always a beat to review or rearrange the next match before it starts.
+    // It only actually starts once "Auto-select players" is clicked.
     render();
   }
 
@@ -1682,6 +1843,10 @@
     changingUpcomingSlot = null;
     lastUpcomingMatches = [];
     autofillRequested = {};
+    courtPreviewOverrides = {};
+    changingCourtPreviewSlot = null;
+    lastCourtPreviews = {};
+    courtAutofillRequested = {};
     render();
   }
 
@@ -1859,6 +2024,7 @@
     state.restingOrder = state.restingOrder.filter(function(id){ return id !== newPid; });
 
     court.players[slotIdx] = newPid;
+    recordPlayerWait(newPid);
     state.players[newPid].status = "court";
 
     state.players[oldPid].status = "queue";
@@ -1980,16 +2146,28 @@
         ];
         var preview = previews[idx];
         if(preview){
-          emptyChildren.push(el("div", { class:"queue-preview" }, [
+          // Editable, same chip pattern as an Upcoming Match card — swap
+          // (⇄), remove (✕ → "Open seat" → "+ Choose"), all scoped to this
+          // court's own preview until it's actually filled.
+          var previewWrap = el("div", { class:"queue-preview" }, [
             el("div", { class:"qp-label", text:"Up next" }),
-            el("div", { class:"qp-teams" }, [
-              el("div", { class:"qp-team", "data-team":"1" },
-                preview.team1.map(function(pid){ return el("span", { class:"qp-name", text:state.players[pid].name }); })),
-              el("span", { class:"qp-vs", text:"vs" }),
-              el("div", { class:"qp-team", "data-team":"2" },
-                preview.team2.map(function(pid){ return el("span", { class:"qp-name", text:state.players[pid].name }); }))
+            el("div", { class:"teams-wrap" }, [
+              buildCourtPreviewTeamBlock(idx, "Team 1", preview.team1, 1, qp.leftoverQueue),
+              buildCourtPreviewTeamBlock(idx, "Team 2", preview.team2, 2, qp.leftoverQueue)
             ])
-          ]));
+          ]);
+          var hasOpenSeatInPreview = preview.team1.concat(preview.team2).some(function(id){ return !id; });
+          if(hasOpenSeatInPreview){
+            var previewAutoBtn = el("button", { type:"button", class:"ghost", style:"margin-top:6px;align-self:stretch;", text:"Auto-fill open seat" });
+            var courtIdxForPreviewFill = idx;
+            previewAutoBtn.addEventListener("click", function(){
+              courtAutofillRequested[courtIdxForPreviewFill] = true;
+              changingCourtPreviewSlot = null;
+              render();
+            });
+            previewWrap.appendChild(previewAutoBtn);
+          }
+          emptyChildren.push(previewWrap);
         }
         if(eligibleWaiting >= need){
           var fillBtn = el("button", { type:"button", class:"ghost", style:"margin-top:8px;", text:"Auto-select players" });
@@ -2331,6 +2509,121 @@
     render();
   }
 
+  // Interactive team block for an open court's own "Up next" preview —
+  // same editable chip pattern as an Upcoming Match card (swap ⇄, remove
+  // ✕, "+ Choose" for an open seat), except edits here only touch that
+  // court's own preview (courtPreviewOverrides), never the real queue,
+  // until the court is actually filled (see resolveCourtGroupForFill).
+  function buildCourtPreviewTeamBlock(courtIndex, label, ids, teamNum, availableForSwap){
+    var teamGrid = el("div", { class:"players-grid" + (ids.length === 1 ? " singles" : "") });
+    ids.forEach(function(pid, slotIndex){
+      teamGrid.appendChild(buildCourtPreviewPlayerChip(courtIndex, teamNum, slotIndex, pid, availableForSwap));
+    });
+    return el("div", { class:"team-block", "data-team":String(teamNum) }, [
+      el("div", { class:"team-label", text:label }),
+      teamGrid
+    ]);
+  }
+
+  function buildCourtPreviewPlayerChip(courtIndex, teamNum, slotIndex, pid, availableForSwap){
+    var p = state.players[pid];
+
+    var editing = changingCourtPreviewSlot && changingCourtPreviewSlot.courtIndex === courtIndex &&
+      changingCourtPreviewSlot.team === teamNum && changingCourtPreviewSlot.slotIndex === slotIndex;
+
+    if(editing){
+      var select = el("select", { class:"change-player-select" });
+      select.appendChild(el("option", { value:"", text:"Choose replacement…" }));
+      availableForSwap.forEach(function(qid){
+        select.appendChild(el("option", { value:qid, text:state.players[qid].name }));
+      });
+      select.addEventListener("change", function(){
+        if(select.value) swapCourtPreviewSlot(courtIndex, teamNum, slotIndex, select.value);
+      });
+      var cancelBtn = el("button", { type:"button", class:"name-edit-btn", text:"✕" });
+      cancelBtn.setAttribute("aria-label", "Cancel changing player");
+      cancelBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingCourtPreviewSlot = null; render(); });
+      return el("div", { class:"player-chip" }, [
+        el("span", { class:"player-name" }, [ select, cancelBtn ])
+      ]);
+    }
+
+    if(!p){
+      // An open seat — left blank by a removal, or a preview that's short
+      // players. Pick someone by hand, or use the card's "Auto-fill open
+      // seat" button to have the algorithm fill it.
+      var pickBtn = el("button", { type:"button", class:"name-edit-btn", text:"+ Choose" });
+      pickBtn.setAttribute("aria-label", "Choose a player for this open seat");
+      pickBtn.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        changingCourtPreviewSlot = { courtIndex:courtIndex, team:teamNum, slotIndex:slotIndex };
+        render();
+      });
+      return el("div", { class:"player-chip open-seat" }, [
+        el("span", { class:"player-name" }, [
+          el("span", { class:"name-text", style:"color:var(--ink-muted);font-style:italic;", text:"Open seat" }),
+          pickBtn
+        ])
+      ]);
+    }
+
+    var nameText = el("span", { class:"name-text", text:p.name });
+    nameText.setAttribute("title", "View " + p.name + "'s match history");
+    nameText.addEventListener("click", function(){ openPlayerHistory(p.id); });
+    var changeBtn = el("button", { type:"button", class:"name-edit-btn", text:"⇄" });
+    changeBtn.setAttribute("aria-label", "Change player for " + p.name);
+    changeBtn.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      changingCourtPreviewSlot = { courtIndex:courtIndex, team:teamNum, slotIndex:slotIndex };
+      render();
+    });
+    var removeBtn = el("button", { type:"button", class:"name-edit-btn remove-slot-btn", text:"✕" });
+    removeBtn.setAttribute("title", "Remove " + p.name + " — leaves the seat open to fill by hand or with Auto-fill");
+    removeBtn.setAttribute("aria-label", "Remove " + p.name + " and leave the seat open");
+    removeBtn.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      removeCourtPreviewSlot(courtIndex, teamNum, slotIndex);
+    });
+    var lockIcon = buildLockIcon(p);
+    var starBadge = buildStarBadge(p);
+    return el("div", { class:"player-chip" }, [
+      el("span", { class:"player-name" }, [ lockIcon, nameText, starBadge, changeBtn, removeBtn ])
+    ]);
+  }
+
+  // Applies one slot edit to an open court's preview, starting from
+  // whatever's currently shown there (an existing override, or the last
+  // auto-computed preview) so changing one player never disturbs the
+  // other three.
+  function swapCourtPreviewSlot(courtIndex, teamNum, slotIndex, newId){
+    var current = courtPreviewOverrides[courtIndex] || lastCourtPreviews[courtIndex];
+    if(!current){ changingCourtPreviewSlot = null; render(); return; }
+    var updated = { team1: current.team1.slice(), team2: current.team2.slice() };
+    var teamKey = teamNum === 1 ? "team1" : "team2";
+    updated[teamKey][slotIndex] = newId;
+    courtPreviewOverrides[courtIndex] = updated;
+    changingCourtPreviewSlot = null;
+    render();
+  }
+
+  // Opens up one seat in an open court's preview — the removed player goes
+  // back to being just a regular queued player, and the seat is left as an
+  // explicit "Open seat" rather than silently refilled, same as removing a
+  // seat on an Upcoming Match card.
+  function removeCourtPreviewSlot(courtIndex, teamNum, slotIndex){
+    var current = courtPreviewOverrides[courtIndex] || lastCourtPreviews[courtIndex];
+    if(!current){ render(); return; }
+    var updated = { team1: current.team1.slice(), team2: current.team2.slice() };
+    var teamKey = teamNum === 1 ? "team1" : "team2";
+    updated[teamKey][slotIndex] = null;
+    courtPreviewOverrides[courtIndex] = updated;
+    if(changingCourtPreviewSlot && changingCourtPreviewSlot.courtIndex === courtIndex &&
+       changingCourtPreviewSlot.team === teamNum && changingCourtPreviewSlot.slotIndex === slotIndex){
+      changingCourtPreviewSlot = null;
+    }
+    render();
+  }
+
   // The "Upcoming Matches" strip, just below the playing courts — a
   // forward look at the matchups coming up after whatever's already
   // previewed on the open courts above, so there's always something to
@@ -2355,21 +2648,11 @@
     var maxCards = 5;
     var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
 
-    // Manual overrides are cleaned and reserved up front (regardless of
-    // card order) so an auto-filled card never happens to duplicate
-    // someone already placed by hand — or auto-filled into an open
-    // seat — on a later card.
-    for(var k=0;k<maxCards;k++){
-      var norm = normalizeUpcomingOverride(upcomingOverrides[k]);
-      if(norm) upcomingOverrides[k] = norm;
-      else delete upcomingOverrides[k];
-    }
-    var reserved = {};
-    for(var k2=0;k2<maxCards;k2++){
-      if(upcomingOverrides[k2]){
-        upcomingOverrides[k2].team1.concat(upcomingOverrides[k2].team2).forEach(function(id){ if(id) reserved[id] = true; });
-      }
-    }
+    // Overrides were already cleaned this render (cleanAllOverrides, in
+    // render()); reserve every manually-placed id — from this panel's own
+    // cards AND any open court's own edited preview — so an auto-filled
+    // card here never duplicates someone already placed by hand elsewhere.
+    var reserved = reservedFromOverrides();
 
     var pool = leftoverQueue.filter(function(id){ return !reserved[id]; });
     var matches = [];
@@ -2645,6 +2928,7 @@
   function render(){
     renderChrome();
     renderStats();
+    cleanAllOverrides();
     var leftoverQueue = renderCourts();
     renderQueueCourts(leftoverQueue);
     renderRoster();
@@ -2727,12 +3011,15 @@
       players.forEach(function(p, i){
         var rank = i + 1;
         var winRate = p.gamesPlayed ? Math.round((p.wins || 0) / p.gamesPlayed * 100) : 0;
+        var avgWaitCell = el("div", { class:"num", text:avgWaitText(p.id) });
+        avgWaitCell.setAttribute("title", "Average time waited in queue before each seating, this session");
         body.appendChild(el("div", { class:"lb-row" }, [
           el("div", { class:"rank-badge" + (rankBadgeClass(rank) ? " " + rankBadgeClass(rank) : ""), text:String(rank) }),
           clickableName(p),
           el("div", { class:"num", text:String(p.wins || 0) }),
           el("div", { class:"num", text:String(p.gamesPlayed || 0) }),
-          el("div", { class:"num", text:winRate + "%" })
+          el("div", { class:"num", text:winRate + "%" }),
+          avgWaitCell
         ]));
       });
     }
@@ -2798,6 +3085,29 @@
     ]);
   }
 
+  // Same as buildTeamNameSpans, but for the player-history popup: each
+  // name gets a small "prtnr:N" or "opp:N" tag alongside it, showing how
+  // many times referencePid has been seated WITH (pairHistory) or
+  // AGAINST (opponentHistory) that specific person across the whole
+  // session — so it's easy to spot who you keep getting paired or
+  // matched up against, at a glance, right on the row it happened.
+  function buildPlayerHistoryNameSpans(team, referencePid, historyMap, tagLabel){
+    var parts = [];
+    team.forEach(function(pl, i){
+      if(i > 0) parts.push(document.createTextNode(" & "));
+      var span = el("span", { class:"name-text", text:pl.name });
+      span.addEventListener("click", function(){ openPlayerHistory(pl.id); });
+      parts.push(span);
+      var count = historyMap[pairKey(referencePid, pl.id)] || 0;
+      if(count > 0){
+        var tag = el("span", { class:"matchup-count", text: tagLabel + ":" + count });
+        tag.setAttribute("title", (tagLabel === "prtnr" ? "Played together " : "Played against each other ") + count + " time" + (count === 1 ? "" : "s") + " this session");
+        parts.push(tag);
+      }
+    });
+    return parts;
+  }
+
   function buildPlayerHistoryRow(m, pid){
     var onTeam = m.team1.some(function(pl){ return pl.id === pid; }) ? 1 : 2;
     var mine = onTeam === 1 ? m.team1 : m.team2;
@@ -2808,10 +3118,10 @@
     var descParts = [];
     if(teammates.length){
       descParts.push(el("span", { class:"history-vs", text:"with" }));
-      descParts = descParts.concat(buildTeamNameSpans(teammates));
+      descParts = descParts.concat(buildPlayerHistoryNameSpans(teammates, pid, state.pairHistory, "prtnr"));
     }
     descParts.push(el("span", { class:"history-vs", text:"vs" }));
-    descParts = descParts.concat(buildTeamNameSpans(theirs));
+    descParts = descParts.concat(buildPlayerHistoryNameSpans(theirs, pid, state.opponentHistory, "opp"));
 
     var timeEl = el("span", { class:"history-time", text:matchDurationText(m) });
     timeEl.setAttribute("title", "Match length");
@@ -2881,7 +3191,9 @@
       var wins = p.wins || 0, games = p.gamesPlayed || 0;
       var losses = Math.max(0, games - wins);
       var rate = games ? Math.round(wins / games * 100) : 0;
-      recordEl.textContent = wins + "-" + losses + " · " + rate + "% win rate";
+      var avgWait = avgWaitMsOf(pid);
+      recordEl.textContent = wins + "-" + losses + " · " + rate + "% win rate" +
+        (avgWait !== null ? " · avg wait " + fmtElapsed(avgWait) : "");
     }else{
       recordEl.textContent = matches.length + " match" + (matches.length === 1 ? "" : "es") + " on record";
     }
