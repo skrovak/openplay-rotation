@@ -1,0 +1,3482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Play Rotation</title>
+<style>[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#F4F5FA;
+    --surface:#FFFFFF;
+    --surface-2:#ECEFF8;
+    --ink:#151B3D;
+    --ink-muted:#5C6285;
+    --line:#DBDFEE;
+    --accent:#1B2A63;
+    --accent-strong:#0E1740;
+    --accent-soft:#E3E6F6;
+    --ball:#F3C43F;
+    --ball-ink:#4A3300;
+    --danger:#B3432B;
+    --danger-soft:#F5E1DA;
+    --team1:#1F6E8C;
+    --team2:#8A3F96;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(22,35,31,0.07), 0 4px 14px rgba(22,35,31,0.06);
+    --font-display:'Teko','Oswald',sans-serif;
+    --font-body:'Work Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0A0E24;
+      --surface:#131A3C;
+      --surface-2:#1A2148;
+      --ink:#EDEFF9;
+      --ink-muted:#9BA1C4;
+      --line:#2A3266;
+      --accent:#7C8FEA;
+      --accent-strong:#B3C0F5;
+      --accent-soft:#1D2657;
+      --ball:#F5CB4C;
+      --ball-ink:#2B1E00;
+      --danger:#E08064;
+      --danger-soft:#33221D;
+      --team1:#6FC4E3;
+      --team2:#D08CE0;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A0E24;
+    --surface:#131A3C;
+    --surface-2:#1A2148;
+    --ink:#EDEFF9;
+    --ink-muted:#9BA1C4;
+    --line:#2A3266;
+    --accent:#7C8FEA;
+    --accent-strong:#B3C0F5;
+    --accent-soft:#1D2657;
+    --ball:#F5CB4C;
+    --ball-ink:#2B1E00;
+    --danger:#E08064;
+    --danger-soft:#33221D;
+    --team1:#6FC4E3;
+    --team2:#D08CE0;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+  }
+
+  *{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; transition-duration:0.01ms !important; }
+  }
+  html,body{ margin:0; }
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--font-body);
+    padding:24px 20px 60px;
+    min-height:100%;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
+
+  /* ---------- header ---------- */
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;
+  }
+  .titleblock{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .brand-logo{
+    width:60px; height:60px; border-radius:50%; object-fit:cover;
+    box-shadow:var(--shadow); flex-shrink:0;
+  }
+  .venue-input{
+    font-family:var(--font-body); font-size:14px; color:var(--ink-muted);
+    background:transparent; border:none; border-bottom:1px dashed var(--line);
+    padding:2px 0; width:280px; max-width:60vw;
+  }
+  .venue-input:focus{ outline:none; border-bottom-color:var(--accent); color:var(--ink); }
+  .clockblock{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; font-family:var(--font-mono); }
+  .clockblock .time{ font-size:26px; font-weight:600; letter-spacing:0.5px; font-variant-numeric:tabular-nums; }
+  .clockblock .date{ font-size:12px; color:var(--ink-muted); font-family:var(--font-body); margin-top:-4px; }
+  .save-status{
+    font-family:var(--font-body); font-size:10.5px; color:var(--ink-muted);
+    display:flex; align-items:center; gap:5px; cursor:default;
+  }
+  .save-status::before{ content:""; width:6px; height:6px; border-radius:50%; background:#3E9B5C; flex-shrink:0; }
+  .save-status-bad{ color:var(--danger); font-weight:600; }
+  .save-status-bad::before{ background:var(--danger); }
+
+  /* ---------- sample banner ---------- */
+  .banner{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    background:var(--accent-soft); border:1px solid var(--accent); border-radius:var(--radius);
+    padding:10px 16px; font-size:13.5px; color:var(--ink);
+  }
+  .banner strong{ font-weight:600; }
+  .banner button{ flex-shrink:0; }
+
+  /* ---------- stat strip ---------- */
+  .stats{ display:flex; gap:10px; flex-wrap:wrap; }
+  .stat{
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:8px 14px; display:flex; flex-direction:column; gap:2px; min-width:108px;
+  }
+  .stat .n{ font-family:var(--font-mono); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .stat .l{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-muted); }
+
+  /* ---------- add bar + settings ---------- */
+  .controls{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; box-shadow:var(--shadow);
+  }
+  .controls form{ display:flex; gap:8px; flex:1 1 320px; }
+  input[type="text"], input[type="number"], select{
+    font-family:var(--font-body); font-size:14px; color:var(--ink);
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+    padding:9px 11px;
+  }
+  input[type="text"]{ flex:1; min-width:0; }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus{
+    outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent);
+  }
+  .hint{ font-size:11.5px; color:var(--ink-muted); flex-basis:100%; }
+  button{
+    font-family:var(--font-body); font-weight:600; font-size:13.5px; cursor:pointer;
+    border-radius:8px; border:1px solid transparent; padding:9px 14px;
+    background:var(--accent); color:#fff;
+  }
+  button:hover{ filter:brightness(1.06); }
+  button:focus-visible{ outline:2px solid var(--accent-strong); outline-offset:2px; }
+  button.ghost{ background:transparent; border-color:var(--line); color:var(--ink); }
+  button.subtle{ background:var(--surface-2); border-color:var(--line); color:var(--ink); }
+  button.danger-ghost{ background:transparent; border-color:var(--line); color:var(--danger); }
+  #endSessionBtn{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  button.icon{ padding:5px 8px; font-size:12px; }
+  button:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  .settings-toggle{ margin-left:auto; }
+  .settings-panel{
+    display:flex; gap:16px; flex-wrap:wrap; align-items:center;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px;
+  }
+  .settings-panel label{ font-size:12.5px; color:var(--ink-muted); display:flex; flex-direction:column; gap:4px; }
+  .settings-panel input[type="number"]{ width:76px; }
+
+  .import-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; }
+  .import-row{ display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:7px; background:var(--surface-2); border:1px solid var(--line); font-size:13px; }
+  .import-row.dupe{ opacity:0.65; }
+  .import-row input[type="checkbox"]{ flex-shrink:0; }
+  .import-row .iname{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .import-row .idupe-tag{ font-size:10.5px; color:var(--ink-muted); flex-shrink:0; }
+
+  /* ---------- layout ---------- */
+  .board{ display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+  @media (max-width:900px){ .board{ grid-template-columns:1fr; } }
+
+  .courts{ display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; }
+  @media (max-width:640px){ .courts{ grid-template-columns:1fr; } }
+
+  .court{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;
+  }
+  .court.open{ border-style:dashed; box-shadow:none; }
+  .court.preview{ border-style:dotted; box-shadow:none; opacity:0.9; }
+  .court.preview .court-num{ font-size:20px; }
+  .court-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+    padding:10px 14px 6px;
+  }
+  .court-num{ font-family:var(--font-display); font-size:34px; font-weight:600; letter-spacing:0.5px; }
+  .court-num-wrap{ display:flex; align-items:baseline; gap:4px; min-width:0; }
+  .court-num-wrap.editing{ align-items:center; flex:1; min-width:0; }
+  .court-num-edit-input{
+    font-family:var(--font-display); font-size:24px; font-weight:600; color:var(--ink);
+    background:var(--surface); border:1px solid var(--accent); border-radius:6px;
+    padding:1px 6px; width:140px; max-width:44vw;
+  }
+  .chip{
+    font-family:var(--font-body); font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.05em; padding:3px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .chip.live{ background:var(--ball); color:var(--ball-ink); }
+  .chip.open{ background:transparent; border:1px solid var(--line); color:var(--ink-muted); }
+  .chip.queue{ background:transparent; border:1px dashed var(--line); color:var(--ink-muted); }
+  .repeat-warning{
+    font-family:var(--font-body); font-size:11.5px; font-weight:600; color:var(--danger);
+    background:var(--danger-soft); border:1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+    border-radius:7px; padding:6px 9px;
+  }
+  .timer{ font-family:var(--font-mono); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--ink-muted); }
+
+  .court-body{ padding:6px 14px 14px; flex:1; display:flex; flex-direction:column; gap:10px; }
+  .players-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .players-grid.singles{ grid-template-columns:1fr; }
+  .player-chip{
+    display:flex; align-items:center; gap:8px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:9px; padding:6px 8px;
+  }
+  .player-name{ font-size:13.5px; flex:1; min-width:0; display:flex; align-items:center; gap:4px; }
+  .lock-icon{ font-size:11px; flex-shrink:0; line-height:1; }
+  .star-rating{ font-size:11px; letter-spacing:1px; flex-shrink:0; line-height:1; color:var(--line); white-space:nowrap; }
+  .star-rating .filled{ color:var(--ball); }
+  .star-picker{ display:flex; gap:2px; flex-shrink:0; }
+  .star-picker button{
+    background:transparent; border:none; padding:2px; font-size:19px; line-height:1;
+    color:var(--line); cursor:pointer; border-radius:4px;
+  }
+  .star-picker button:hover{ background:var(--surface-2); filter:none; }
+  .star-picker button.filled{ color:var(--ball); }
+  .name-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; cursor:pointer; }
+  .name-text:hover{ text-decoration:underline; text-decoration-color:var(--accent); }
+  .name-edit-btn{ flex-shrink:0; background:transparent; border:none; color:var(--ink-muted); cursor:pointer; font-size:11px; line-height:1; padding:3px 5px; border-radius:5px; }
+  .name-edit-btn:hover{ background:var(--surface); color:var(--ink); }
+  .remove-slot-btn{ color:var(--danger); }
+  .remove-slot-btn:hover{ background:var(--danger-soft); color:var(--danger); }
+  .player-chip.open-seat{ background:transparent; border-style:dashed; }
+  .inline-edit-input{ font-family:inherit; font-size:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--accent); border-radius:6px; padding:2px 6px; flex:1; min-width:0; }
+  .change-player-select{
+    font-family:var(--font-body); font-size:13px; color:var(--ink); background:var(--surface);
+    border:1px solid var(--accent); border-radius:6px; padding:3px 6px; flex:1; min-width:0;
+  }
+  .empty-court{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; padding:18px 8px; text-align:center; color:var(--ink-muted); font-size:13px;
+  }
+  .empty-court .need{ font-family:var(--font-mono); font-size:12px; }
+  .queue-preview{
+    width:100%; margin-top:10px; padding:8px 10px; border:1px dashed var(--line);
+    border-radius:8px; background:var(--surface-2); text-align:left;
+  }
+  .qp-label{
+    font-family:var(--font-body); font-size:9.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--ink-muted); margin-bottom:4px;
+  }
+  .qp-teams{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; font-size:12.5px; }
+  .qp-team{ display:flex; gap:5px; flex-wrap:wrap; }
+  .qp-team[data-team="1"] .qp-name{ color:var(--team1); font-weight:600; }
+  .qp-team[data-team="2"] .qp-name{ color:var(--team2); font-weight:600; }
+  .qp-vs{ color:var(--ink-muted); font-size:10.5px; flex-shrink:0; }
+  .court-actions{ display:flex; gap:8px; justify-content:flex-end; padding-top:2px; }
+
+  .teams-wrap{ display:flex; flex-direction:column; gap:8px; }
+  .team-block{
+    display:flex; flex-direction:column; gap:5px;
+    border-left:3px solid transparent; padding-left:8px; border-radius:4px;
+  }
+  .team-block[data-team="1"]{ border-left-color:var(--team1); }
+  .team-block[data-team="2"]{ border-left-color:var(--team2); }
+  .team-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--ink-muted); }
+  .team-block[data-team="1"] .team-label{ color:var(--team1); }
+  .team-block[data-team="2"] .team-label{ color:var(--team2); }
+  .team-block[data-team="1"] .player-chip{
+    background:color-mix(in srgb, var(--team1) 14%, var(--surface-2));
+    border-color:color-mix(in srgb, var(--team1) 40%, var(--line));
+  }
+  .team-block[data-team="2"] .player-chip{
+    background:color-mix(in srgb, var(--team2) 14%, var(--surface-2));
+    border-color:color-mix(in srgb, var(--team2) 40%, var(--line));
+  }
+  .team-actions{ gap:8px; }
+  .team-actions button{ flex:1; }
+  button.team1-btn{ background:var(--team1); color:#fff; border-color:var(--team1); }
+  button.team2-btn{ background:var(--team2); color:#fff; border-color:var(--team2); }
+
+  /* ---------- sidebar ---------- */
+  .panel{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:14px; display:flex; flex-direction:column; gap:10px;
+  }
+  .panel + .panel{ margin-top:14px; }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; }
+  .panel-head h2{ font-family:var(--font-display); font-weight:600; font-size:22px; letter-spacing:0.3px; margin:0; }
+  .count-badge{
+    font-family:var(--font-mono); font-size:12px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:999px; padding:2px 9px; color:var(--ink-muted);
+  }
+  .up-next-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent-strong); margin:2px 0 -2px; }
+
+  .queue-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .queue-row{
+    display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:9px;
+    background:var(--surface-2); border:1px solid var(--line);
+  }
+  .queue-row.up-next{ background:color-mix(in srgb, var(--ball) 18%, var(--surface-2)); border-color:var(--ball); }
+  .queue-row.maxed{ opacity:0.6; border-style:dashed; }
+  .pos{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink-muted); width:18px; text-align:right; flex-shrink:0; }
+  .queue-name{ font-size:13.5px; flex:1; min-width:0; display:flex; align-items:center; gap:4px; }
+  .pair-tag{ font-size:10.5px; color:var(--ink-muted); flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px; }
+  .max-tag{
+    font-family:var(--font-body); font-size:9px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.04em; color:var(--ink-muted); border:1px solid var(--line); border-radius:5px;
+    padding:1px 5px; flex-shrink:0;
+  }
+  .wait{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-muted); font-variant-numeric:tabular-nums; flex-shrink:0; }
+  .wait.overdue{ color:var(--danger); font-weight:700; }
+  .row-actions{ display:flex; gap:4px; flex-shrink:0; }
+  button.icon.paired{ background:var(--ball); color:var(--ball-ink); border-color:var(--ball); }
+
+  .empty-panel{ font-size:13px; color:var(--ink-muted); padding:6px 2px; }
+
+  footer{ text-align:center; font-size:11.5px; color:var(--ink-muted); padding-top:8px; }
+
+  /* ---------- match history ---------- */
+  .history-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; }
+  .history-row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2);
+  }
+  .history-court{ font-family:var(--font-mono); font-size:11px; color:var(--ink-muted); flex-shrink:0; width:58px; }
+  .history-teams{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; font-size:13.5px; flex-wrap:wrap; }
+  .history-team{ display:inline-flex; align-items:center; gap:5px; color:var(--ink-muted); }
+  .history-team.won{ color:var(--ink); font-weight:700; }
+  .win-pill{
+    font-family:var(--font-body); font-size:9px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.04em; background:var(--ball); color:var(--ball-ink); border-radius:5px; padding:1px 5px; flex-shrink:0;
+  }
+  .loss-pill{
+    font-family:var(--font-body); font-size:9px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.04em; background:var(--surface); color:var(--ink-muted); border:1px solid var(--line);
+    border-radius:5px; padding:0 5px; flex-shrink:0;
+  }
+  .history-vs{ font-size:11px; color:var(--ink-muted); flex-shrink:0; }
+  .matchup-count{
+    font-family:var(--font-mono); font-size:10px; font-weight:600; color:var(--ink-muted);
+    background:var(--surface); border:1px solid var(--line); border-radius:5px;
+    padding:0 4px; margin-left:3px; white-space:nowrap; flex-shrink:0;
+  }
+  .history-time{ font-family:var(--font-mono); font-size:11px; color:var(--ink-muted); flex-shrink:0; font-variant-numeric:tabular-nums; }
+
+  /* ---------- leaderboard overlay ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,10,26,0.55); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .overlay[hidden]{ display:none; }
+  .overlay-panel{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    box-shadow:var(--shadow); width:100%; max-width:640px; max-height:86vh; overflow-y:auto;
+    padding:22px; display:flex; flex-direction:column; gap:14px;
+  }
+  .overlay-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .overlay-head h2{ font-family:var(--font-display); font-size:32px; font-weight:600; margin:0; letter-spacing:0.3px; }
+  .overlay-sub{ font-size:12.5px; color:var(--ink-muted); margin-top:2px; }
+  .close-btn{ background:transparent; border:none; color:var(--ink-muted); font-size:16px; cursor:pointer; padding:4px 9px; border-radius:6px; flex-shrink:0; }
+  .close-btn:hover{ background:var(--surface-2); color:var(--ink); }
+  .lb-scroll{ overflow-x:auto; }
+  .lb-header-row, .lb-row{ display:grid; grid-template-columns:34px 1fr 52px 52px 56px 68px; gap:8px; align-items:center; padding:7px 4px; min-width:340px; }
+  .lb-header-row{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-muted); border-bottom:1px solid var(--line); padding-bottom:8px; }
+  .lb-row{ border-bottom:1px solid var(--line); font-size:13.5px; }
+  .lb-row:last-child{ border-bottom:none; }
+  .lb-row .num, .lb-header-row .num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; text-align:right; }
+  .lb-row .name-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank-badge{
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-size:11.5px; font-weight:600; background:var(--surface-2); color:var(--ink-muted);
+  }
+  .rank-badge.gold{ background:#F3C43F; color:#4A3300; }
+  .rank-badge.silver{ background:#C9CEDE; color:#2E3242; }
+  .rank-badge.bronze{ background:#D79A5E; color:#402408; }
+  .overlay-actions{ display:flex; justify-content:flex-end; gap:8px; padding-top:4px; }
+
+  /* ---------- mini leaderboard (sidebar) ---------- */
+  .lb-mini-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  .lb-mini-row{ display:flex; align-items:center; gap:8px; padding:4px 2px; }
+  .lb-mini-row .name-text{ flex:1; font-size:13px; }
+  .lb-mini-row .num{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-muted); flex-shrink:0; }
+
+  @media (max-width:460px){
+    .clockblock{ align-items:flex-start; }
+    header.top{ flex-direction:column; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="titleblock">
+      <img class="brand-logo" src="logo.jpg" alt="Swito Homies Pickleball" />
+      <input id="venueInput" class="venue-input" type="text" placeholder="Club or location name" />
+    </div>
+    <div class="clockblock">
+      <div class="time" id="clockTime">--:--</div>
+      <div class="date" id="clockDate">—</div>
+      <div class="save-status" id="saveStatus" title="This board is saved automatically in this browser as you make changes. It's only in this browser — download a backup (Backup button above the queue) to keep a copy or move it elsewhere.">Saved in this browser</div>
+      <button class="subtle" type="button" id="endSessionBtn">End session</button>
+    </div>
+  </header>
+
+  <div class="banner" id="sampleBanner" hidden>
+    <span><strong>Sample data</strong> — this board is pre-filled so you can see how it works. Start your own session to clear it.</span>
+    <button class="subtle" id="startSessionBtn" type="button">Start new session</button>
+  </div>
+
+  <div class="stats" id="statsStrip"></div>
+
+  <div class="controls">
+    <form id="addForm">
+      <input id="addInput" type="text" placeholder="Add player name (or a, b, c for several)" autocomplete="off" />
+      <button type="submit">Add to queue</button>
+    </form>
+    <button class="ghost" type="button" id="importToggle">Import list</button>
+    <button class="ghost" type="button" id="backupToggle">Backup</button>
+    <button class="ghost settings-toggle" type="button" id="settingsToggle">Courts &amp; format</button>
+  </div>
+
+  <div class="settings-panel" id="backupPanel" hidden style="flex-direction:column;align-items:stretch;gap:10px;">
+    <div>
+      <strong style="font-size:13.5px;">Backup this session</strong>
+      <div class="hint" style="margin-top:2px;">This board saves automatically as you go, but only in this browser — refreshing here is safe, but a different device, a different browser, or someone else opening this link starts from a blank board. Download a backup file any time, and restore it (here, or anywhere else) to pick back up.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="subtle" type="button" id="downloadBackupBtn">Download backup (.json)</button>
+      <label class="subtle" style="flex-direction:row;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:13.5px;">
+        Restore from backup
+        <input id="restoreBackupFile" type="file" accept=".json,application/json" style="display:none;" />
+      </label>
+    </div>
+    <div class="hint" id="backupStatus" style="flex-basis:auto;min-height:14px;"></div>
+  </div>
+
+  <div class="settings-panel" id="importPanel" hidden style="flex-direction:column;align-items:stretch;gap:10px;">
+    <div>
+      <strong style="font-size:13.5px;">Import a roster</strong>
+      <div class="hint" style="margin-top:2px;">Reclub doesn't offer an export or API yet, so copy the names off your event's RSVP or check-in screen (or any list, or a .csv) and paste them below.</div>
+    </div>
+    <textarea id="importText" rows="5" placeholder="Paste names here, one per line — a copied RSVP list or CSV row works too" style="font-family:var(--font-body);font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;resize:vertical;"></textarea>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label class="subtle" style="flex-direction:row;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;">
+        Upload .csv / .txt
+        <input id="importFile" type="file" accept=".csv,.txt,text/csv,text/plain" style="display:none;" />
+      </label>
+      <span class="hint" id="importSummary" style="flex-basis:auto;">Paste or upload a list to see a preview.</span>
+    </div>
+    <div id="importPreview"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="ghost" type="button" id="importCancelBtn">Cancel</button>
+      <button type="button" id="importAddBtn" disabled>Import selected</button>
+    </div>
+  </div>
+
+  <div class="settings-panel" id="settingsPanel" hidden>
+    <label>Courts
+      <input id="courtCountInput" type="number" min="1" max="8" step="1" />
+    </label>
+    <label>Format
+      <select id="formatSelect">
+        <option value="4">Doubles (4 per court)</option>
+        <option value="2">Singles (2 per court)</option>
+      </select>
+    </label>
+    <label>Max games/player
+      <input id="maxGamesInput" type="number" min="0" step="1" placeholder="No limit" />
+    </label>
+    <label style="flex-direction:row;align-items:center;gap:6px;">
+      <input id="avoidRepeatsToggle" type="checkbox" style="width:auto;" />
+      Avoid repeat matchups
+    </label>
+    <label style="flex-direction:row;align-items:center;gap:6px;">
+      <input id="autoFillToggle" type="checkbox" style="width:auto;" />
+      Auto-select players for open courts
+    </label>
+    <label style="flex-direction:row;align-items:center;gap:6px;">
+      <input id="ratingMatchToggle" type="checkbox" style="width:auto;" />
+      Only match players with the same rating
+    </label>
+    <span class="hint" style="flex-basis:auto;max-width:260px;">Reducing courts sends players on a removed court back to the front of the queue. Turn off auto-select to fill each open court yourself. Ending a game always leaves that court open on an editable preview first — swap or remove anyone before hitting "Auto-select players" to start it — auto-select just covers courts that are open for other reasons. With same-rating matching on, set a player's rating from their match-history popup (click their name) — unrated players (no stars) only match with other unrated players. If there still aren't enough at the exact rating, a one-star-lower player who's winning more than average, or a one-star-higher player who's winning less than average, can bridge in to keep the queue moving.</span>
+  </div>
+
+  <div class="board">
+    <section>
+      <div class="courts" id="courtsGrid"></div>
+
+      <div class="panel" id="queueCourtsPanel" hidden style="margin-top:20px;">
+        <div class="panel-head">
+          <h2>Upcoming Matches</h2>
+          <span class="count-badge" id="queueCourtsCount">0</span>
+        </div>
+        <div class="hint" style="flex-basis:auto;">A preview of the matchups coming up after the courts currently open.</div>
+        <div class="courts" id="queueCourtsGrid"></div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel" id="rosterPanel" hidden>
+        <div class="panel-head">
+          <h2>Not Checked In</h2>
+          <span class="count-badge" id="rosterCount">0</span>
+        </div>
+        <div class="hint" style="flex-basis:auto;">Imported players wait here until you check them in.</div>
+        <ul class="queue-list" id="rosterList"></ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Waiting Queue</h2>
+          <span class="count-badge" id="queueCount">0</span>
+        </div>
+        <ul class="queue-list" id="queueList"></ul>
+      </div>
+
+      <div class="panel" id="restingPanel" hidden>
+        <div class="panel-head">
+          <h2>Taking a Break</h2>
+          <span class="count-badge" id="restingCount">0</span>
+        </div>
+        <ul class="queue-list" id="restingList"></ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Leaderboard</h2>
+          <span class="count-badge" id="miniLbCount">0</span>
+        </div>
+        <div id="miniLbEmpty" class="empty-panel">No games finished yet.</div>
+        <ol class="lb-mini-list" id="miniLbList"></ol>
+        <button class="ghost" type="button" id="viewFullLbBtn" style="align-self:flex-start;">View full leaderboard</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Match History</h2>
+      <span class="count-badge" id="historyCount">0</span>
+    </div>
+    <div id="historyEmpty" class="empty-panel">No completed matches yet — results will appear here once you end a game.</div>
+    <ul class="history-list" id="historyList"></ul>
+  </div>
+
+  <footer>Rotation runs on this screen only — add players as they check in and pick the winning team to rotate courts.</footer>
+</div>
+
+<div class="overlay" id="leaderboardOverlay" hidden>
+  <div class="overlay-panel">
+    <div class="overlay-head">
+      <div>
+        <h2>Session Leaderboard</h2>
+        <div class="overlay-sub" id="lbVenue">Today's session</div>
+      </div>
+      <button class="close-btn" type="button" id="lbCloseX" aria-label="Close leaderboard">✕</button>
+    </div>
+    <div id="lbEmpty" class="empty-panel" hidden>No games played yet this session.</div>
+    <div id="lbTable" class="lb-scroll">
+      <div class="lb-header-row">
+        <div></div><div>Player</div><div class="num">Wins</div><div class="num">Games</div><div class="num">Win %</div><div class="num">Avg Wait</div>
+      </div>
+      <div id="lbBody"></div>
+    </div>
+    <div class="overlay-actions">
+      <button class="ghost" type="button" id="lbBackBtn">Back to board</button>
+      <button type="button" id="lbNewSessionBtn">Start new session</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="playerHistoryOverlay" hidden>
+  <div class="overlay-panel">
+    <div class="overlay-head">
+      <div>
+        <h2 id="phName">Player</h2>
+        <div class="overlay-sub" id="phRecord">0-0 · 0% win rate</div>
+      </div>
+      <button class="close-btn" type="button" id="phCloseX" aria-label="Close player history">✕</button>
+    </div>
+    <div id="phGenderRow" style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-muted);" hidden>
+      <label for="phGenderSelect">Gender</label>
+      <select id="phGenderSelect" style="width:auto;">
+        <option value="">Not set</option>
+        <option value="F">Female</option>
+        <option value="M">Male</option>
+        <option value="O">Other</option>
+      </select>
+    </div>
+    <div id="phRatingRow" style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-muted);" hidden>
+      <label>Rating</label>
+      <div class="star-picker" id="phRatingStars"></div>
+      <span class="hint" id="phRatingHint" style="flex-basis:auto;">Click a star to set, click it again to clear.</span>
+    </div>
+    <div id="phEmpty" class="empty-panel" hidden>No completed matches yet for this player.</div>
+    <ul class="history-list" id="phList"></ul>
+    <div class="overlay-actions">
+      <button class="ghost" type="button" id="phBackBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="confirmOverlay" hidden>
+  <div class="overlay-panel" style="max-width:380px;">
+    <div class="overlay-head">
+      <h2 id="confirmTitle" style="font-size:26px;">Are you sure?</h2>
+    </div>
+    <div id="confirmMessage" style="font-size:13.5px;color:var(--ink);"></div>
+    <div class="overlay-actions">
+      <button class="ghost" type="button" id="confirmCancelBtn">Cancel</button>
+      <button type="button" id="confirmYesBtn">Yes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "openplay-rotation-state-v1";
+  var WAIT_WARNING_MS = 20 * 60000; // flag a queued player in red once they've waited this long
+
+  function uid(){ return "p" + (Math.random().toString(36).slice(2,9)); }
+
+  function seedState(){
+    var players = {};
+    function mk(name, games, wins, status, extra){
+      var id = uid();
+      players[id] = Object.assign({ id:id, name:name, gamesPlayed:games, wins:wins, status:status }, extra || {});
+      return id;
+    }
+    var now = Date.now();
+    var c1 = [mk("Maria T.",2,2,"court"), mk("Dave K.",2,1,"court"), mk("Priya S.",1,0,"court"), mk("Wonjune L.",2,1,"court")];
+    var c2 = [mk("Alex R.",1,1,"court"), mk("Sam O.",1,0,"court"), mk("Ben H.",2,1,"court"), mk("Chloe F.",1,0,"court")];
+    var c3 = [mk("Marcus D.",3,2,"court"), mk("Elena V.",2,1,"court"), mk("Josh P.",1,0,"court"), mk("Nadia Q.",1,1,"court")];
+    var qNames = [["Tyler B.",1,0],["Grace M.",0,0],["Omar I.",1,1],["Lily N.",0,0],["Derek W.",2,1],["Priyanka J.",1,0],["Hassan Y.",0,0]];
+    var queueOrder = qNames.map(function(n, i){
+      // first entry is seeded as having waited a long time, so the
+      // "waited too long" highlight has an example to show right away
+      var waitedMs = i === 0 ? 21*60000 : Math.floor(Math.random()*4)*60000;
+      return mk(n[0], n[1], n[2], "queue", { queuedAt: now - waitedMs });
+    });
+    var restA = mk("Frank S.", 2, 1, "resting");
+    var restB = mk("Yuki M.", 1, 0, "resting");
+    var rosterA = mk("Casey P.", 0, 0, "roster");
+    var rosterB = mk("Jordan K.", 0, 0, "roster");
+
+    // demo a locked-in pair so the feature is visible right away
+    players[queueOrder[4]].partnerId = queueOrder[5];
+    players[queueOrder[5]].partnerId = queueOrder[4];
+    players[c1[0]].gender = "F";
+    players[c1[1]].gender = "M";
+
+    // demo a few star ratings so the feature is visible right away
+    players[c1[0]].rating = 4;
+    players[c1[1]].rating = 4;
+    players[c2[0]].rating = 3;
+    players[queueOrder[0]].rating = 5;
+
+    // demo a plausible average wait per player who's actually played a
+    // game or two, so the leaderboard's "Avg Wait" column isn't just a
+    // wall of dashes on first look.
+    c1.concat(c2, c3, queueOrder).forEach(function(id, i){
+      var p = players[id];
+      if(!p.gamesPlayed) return;
+      var avgMin = 6 + ((i * 3) % 9); // varies 6-14 min, deterministic
+      p.waitCount = p.gamesPlayed;
+      p.totalWaitMs = avgMin * 60000 * p.gamesPlayed;
+    });
+
+    function mh(id){ return { id:id, name: players[id].name }; }
+    var matchHistory = [
+      {
+        id: uid(), courtLabel: "Court 4", timestamp: now - 2*60000, durationMs: 16*60000,
+        team1: [mh(queueOrder[0]), mh(queueOrder[1])],
+        team2: [mh(queueOrder[2]), mh(queueOrder[3])],
+        winner: 2
+      },
+      {
+        id: uid(), courtLabel: "Court 3", timestamp: now - 5*60000, durationMs: 14*60000 + 30000,
+        team1: [mh(c3[0]), mh(c3[1])],
+        team2: [mh(c3[2]), mh(c3[3])],
+        winner: 1
+      },
+      {
+        id: uid(), courtLabel: "Court 1", timestamp: now - 9*60000, durationMs: 19*60000,
+        team1: [mh(c1[2]), mh(c1[3])],
+        team2: [mh(c1[0]), mh(c1[1])],
+        winner: 2
+      },
+      {
+        id: uid(), courtLabel: "Court 2", timestamp: now - 12*60000, durationMs: 17*60000 + 15000,
+        team1: [mh(c2[0]), mh(c2[1])],
+        team2: [mh(c2[2]), mh(c2[3])],
+        winner: 1
+      }
+    ];
+
+    return {
+      seeded: true,
+      venueName: "Riverside Pickleball Club",
+      courtCount: 4,
+      playersPerCourt: 4,
+      avoidRepeats: true,
+      autoFillEnabled: true,
+      ratingMatchEnabled: false,
+      maxGamesPerPlayer: 0,
+      pairHistory: {},
+      opponentHistory: {},
+      matchHistory: matchHistory,
+      players: players,
+      queueOrder: queueOrder,
+      restingOrder: [restA, restB],
+      rosterOrder: [rosterA, rosterB],
+      courts: [
+        { players: c1, startedAt: now - 14*60000 },
+        { players: c2, startedAt: now - 6*60000 },
+        { players: c3, startedAt: now - 2*60000 },
+        { players: [], startedAt: null }
+      ]
+    };
+  }
+
+  function emptyState(){
+    return {
+      seeded: false,
+      venueName: "",
+      courtCount: 5,
+      playersPerCourt: 4,
+      avoidRepeats: true,
+      autoFillEnabled: true,
+      ratingMatchEnabled: false,
+      maxGamesPerPlayer: 0,
+      pairHistory: {},
+      opponentHistory: {},
+      matchHistory: [],
+      players: {},
+      queueOrder: [],
+      restingOrder: [],
+      rosterOrder: [],
+      courts: [0,1,2,3,4].map(function(){ return { players: [], startedAt: null }; })
+    };
+  }
+
+  function loadFromStorage(){
+    try{
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      var parsed = JSON.parse(raw);
+      if(parsed && parsed.players && parsed.courts) return parsed;
+    }catch(e){ /* storage unavailable or corrupt — ignore */ }
+    return null;
+  }
+
+  // Whether this browser is actually holding onto saves right now — shown
+  // in the header so a browser that's silently discarding localStorage
+  // (private browsing, blocked site data, storage full, ...) is obvious
+  // right away instead of surfacing only as "my data disappeared" later.
+  var storageWorking = true;
+
+  function persist(){
+    try{
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if(!storageWorking){ storageWorking = true; updateSaveStatus(); }
+    }catch(e){
+      // best effort only — but let the person know, since this means
+      // nothing here survives a refresh in this browser.
+      if(storageWorking){ storageWorking = false; updateSaveStatus(); }
+    }
+  }
+
+  function updateSaveStatus(){
+    var el = document.getElementById("saveStatus");
+    if(!el) return;
+    if(storageWorking){
+      el.textContent = "Saved in this browser";
+      el.classList.remove("save-status-bad");
+    }else{
+      el.textContent = "Not saving — download a backup";
+      el.classList.add("save-status-bad");
+    }
+  }
+
+  // ---------- backup: download / restore a full session as a .json file ----------
+  // This browser's own storage is per-browser and per-device (see
+  // updateSaveStatus above) — a downloaded backup is the only copy that
+  // survives clearing site data, moving to a new browser or device, or a
+  // browser whose storage silently doesn't stick at all.
+
+  var downloadsCapability = null;
+  (function initDownloadsCapability(){
+    try{
+      if(window.claude && typeof window.claude.use === "function"){
+        window.claude.use("downloads").then(function(d){ downloadsCapability = d; }).catch(function(){});
+      }
+    }catch(e){ /* not running inside a Claude artifact viewer — fine, save() falls back below */ }
+  })();
+
+  function showBackupStatus(msg, isError){
+    var el = document.getElementById("backupStatus");
+    if(!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? "var(--danger)" : "";
+  }
+
+  function backupFilename(){
+    var d = new Date();
+    var pad = function(n){ return (n < 10 ? "0" : "") + n; };
+    var datePart = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    var venuePart = (state.venueName || "openplay").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return (venuePart || "openplay") + "-backup-" + datePart + ".json";
+  }
+
+  function saveBackupFile(filename, jsonText){
+    if(downloadsCapability && typeof downloadsCapability.save === "function"){
+      downloadsCapability.save({ filename: filename, data: jsonText }).then(function(){
+        showBackupStatus("Backup saved.");
+      }).catch(function(err){
+        var code = err && err.code;
+        if(code === "declined") showBackupStatus("Backup cancelled.");
+        else if(code === "rate_limited") showBackupStatus("Still finishing the last save — try again in a moment.", true);
+        else showBackupStatus("Couldn't save the backup right now — try again.", true);
+      });
+      return;
+    }
+    // Outside the Claude artifact viewer (e.g. this file opened directly),
+    // fall back to a normal browser download.
+    try{
+      var blob = new Blob([jsonText], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      showBackupStatus("Backup saved.");
+    }catch(e){
+      showBackupStatus("Couldn't save a backup file in this browser.", true);
+    }
+  }
+
+  function downloadBackup(){
+    var jsonText;
+    try{ jsonText = JSON.stringify(state, null, 2); }
+    catch(e){ showBackupStatus("Couldn't prepare the backup.", true); return; }
+    saveBackupFile(backupFilename(), jsonText);
+  }
+
+  // Replaces the whole board with a restored backup — same transient-UI
+  // reset as starting a new session, since every player id, court index,
+  // and in-progress edit reference from before the restore is now stale.
+  function applyRestoredState(parsed){
+    state = normalizeState(parsed);
+    editingPlayerId = null;
+    pendingConfirm = {};
+    changingCourtSlot = null;
+    courtNotices = {};
+    editingCourtLabelIndex = null;
+    pairingPickerFor = null;
+    currentHistoryPlayerId = null;
+    upcomingOverrides = {};
+    changingUpcomingSlot = null;
+    lastUpcomingMatches = [];
+    autofillRequested = {};
+    courtPreviewOverrides = {};
+    changingCourtPreviewSlot = null;
+    lastCourtPreviews = {};
+    courtAutofillRequested = {};
+    ensureCourtArrayLength();
+    autofillCourts();
+    persist();
+    render();
+    showBackupStatus("Backup restored.");
+  }
+
+  function handleRestoreFile(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed;
+      try{ parsed = JSON.parse(String(reader.result || "")); }
+      catch(e){ showBackupStatus("That file isn't a valid backup (couldn't read it as JSON).", true); return; }
+      if(!parsed || typeof parsed !== "object" || !parsed.players || !parsed.courts){
+        showBackupStatus("That file doesn't look like an Open Play Rotation backup.", true);
+        return;
+      }
+      openConfirm(
+        "Restore this backup? It will replace everything currently on this board — courts, queue, and match history.",
+        function(){ applyRestoredState(parsed); },
+        "Restore backup"
+      );
+    };
+    reader.onerror = function(){ showBackupStatus("Couldn't read that file.", true); };
+    reader.readAsText(file);
+  }
+
+  // Fills in any fields missing from a saved/carried-over state object
+  // (e.g. loaded from an older version of this page) so newer code never
+  // trips on an undefined field.
+  function normalizeState(s){
+    if(!s || typeof s !== "object") return s;
+    if(!Array.isArray(s.matchHistory)) s.matchHistory = [];
+    if(!s.pairHistory || typeof s.pairHistory !== "object") s.pairHistory = {};
+    if(!s.opponentHistory || typeof s.opponentHistory !== "object") s.opponentHistory = {};
+    if(typeof s.avoidRepeats !== "boolean") s.avoidRepeats = true;
+    if(typeof s.autoFillEnabled !== "boolean") s.autoFillEnabled = true;
+    if(typeof s.ratingMatchEnabled !== "boolean") s.ratingMatchEnabled = false;
+    if(typeof s.maxGamesPerPlayer !== "number") s.maxGamesPerPlayer = 0;
+    if(!s.courtCount) s.courtCount = 4;
+    if(!s.playersPerCourt) s.playersPerCourt = 4;
+    if(typeof s.venueName !== "string") s.venueName = "";
+    if(!Array.isArray(s.queueOrder)) s.queueOrder = [];
+    if(!Array.isArray(s.restingOrder)) s.restingOrder = [];
+    if(!Array.isArray(s.rosterOrder)) s.rosterOrder = [];
+    if(!s.players || typeof s.players !== "object") s.players = {};
+    Object.keys(s.players).forEach(function(id){
+      var p = s.players[id];
+      if(!p) return;
+      if(typeof p.wins !== "number") p.wins = 0;
+      if(typeof p.gamesPlayed !== "number") p.gamesPlayed = 0;
+      if(typeof p.partnerId !== "string") p.partnerId = null;
+      if(typeof p.gender !== "string") p.gender = "";
+      if(typeof p.rating !== "number" || p.rating < 0 || p.rating > 5) p.rating = 0;
+      if(typeof p.totalWaitMs !== "number") p.totalWaitMs = 0;
+      if(typeof p.waitCount !== "number") p.waitCount = 0;
+    });
+    if(!Array.isArray(s.courts)) s.courts = [];
+    s.courts.forEach(function(c){
+      if(!Array.isArray(c.players)) c.players = [];
+      if(typeof c.label !== "string") c.label = null;
+    });
+    return s;
+  }
+
+  var state = emptyState();
+  var editingPlayerId = null;        // player id whose name is being edited inline (transient UI state)
+  var pendingConfirm = {};           // courtIndex -> winnerTeam (1 or 2) awaiting an on-page "are you sure?" (transient UI state)
+  var changingCourtSlot = null;      // {courtIndex, pid} awaiting a swap-in selection on a court (transient UI state)
+  var courtNotices = {};             // courtIndex -> message string, e.g. a just-seated player's partner isn't on this court (transient UI state)
+  var editingCourtLabelIndex = null; // court index whose name is being edited inline (transient UI state)
+  var pairingPickerFor = null;       // player id currently choosing a locked-in partner (transient UI state)
+  var currentHistoryPlayerId = null; // player id the player-history overlay is currently showing (transient UI state)
+  var upcomingOverrides = {};        // matchIndex -> {team1:[ids], team2:[ids]} manual edits to the Upcoming Matches preview (transient UI state)
+  var changingUpcomingSlot = null;   // {matchIndex, team, slotIndex} awaiting a swap-in selection in an Upcoming Match card (transient UI state)
+  var lastUpcomingMatches = [];      // matchIndex -> {team1, team2} last computed/shown, so a fresh single-slot edit has a starting point (transient UI state)
+  var autofillRequested = {};        // matchIndex -> true for one render, when the card's Auto-fill button was just clicked with an open seat present (transient UI state)
+  var courtPreviewOverrides = {};    // courtIndex -> {team1:[ids], team2:[ids]} manual edits to an open court's own "Up next" preview (transient UI state)
+  var changingCourtPreviewSlot = null; // {courtIndex, team, slotIndex} awaiting a swap-in selection in an open court's preview (transient UI state)
+  var lastCourtPreviews = {};        // courtIndex -> {team1, team2} last computed/shown for an open court, so a fresh single-slot edit has a starting point (transient UI state)
+  var courtAutofillRequested = {};   // courtIndex -> true for one render, when an open court preview's "Auto-fill open seat" button was just clicked (transient UI state)
+
+  // ---------- core actions ----------
+
+  // Keeps state.queueOrder itself sorted by actual wait time (earliest
+  // queuedAt first), rather than relying on incidental push/unshift order.
+  // Call this after anything that adds a player to the queue or changes a
+  // still-queued player's queuedAt, so the player who's genuinely been
+  // waiting longest is always the one actually offered the next open
+  // seat, a court's swap-in dropdown, or an Upcoming Match slot — matching
+  // what the Waiting Queue panel already displays.
+  function sortQueueByWaitTime(){
+    state.queueOrder.sort(function(a, b){
+      var qa = (state.players[a] && state.players[a].queuedAt) || 0;
+      var qb = (state.players[b] && state.players[b].queuedAt) || 0;
+      return qa - qb;
+    });
+  }
+
+  function ensureCourtArrayLength(){
+    while(state.courts.length < state.courtCount) state.courts.push({ players: [], startedAt: null, label: null });
+    while(state.courts.length > state.courtCount){
+      var removed = state.courts.pop();
+      // Anyone displaced by a removed court goes back into the queue —
+      // they didn't get to finish — keeping their original queuedAt (not
+      // reset to now), so sortQueueByWaitTime places them exactly where
+      // their actual wait time earns them, same as everyone else.
+      for(var i = removed.players.length - 1; i >= 0; i--){
+        var pid = removed.players[i];
+        state.players[pid].status = "queue";
+        state.queueOrder.push(pid);
+      }
+    }
+    sortQueueByWaitTime();
+  }
+
+  function pairKey(a, b){ return a < b ? a + "|" + b : b + "|" + a; }
+
+  // Records "these two were TEAMMATES" — once per team, for every pair
+  // within it. Kept in its own map (pairHistory), separate from
+  // opponentHistory below, so the two kinds of repeat can be weighted
+  // very differently: a repeat teammate is avoided far more aggressively
+  // than a repeat opponent (see bestTeamSplit / pickBestUnitGroup).
+  function recordTeammatePairs(team){
+    for(var i=0;i<team.length;i++){
+      for(var j=i+1;j<team.length;j++){
+        var k = pairKey(team[i], team[j]);
+        state.pairHistory[k] = (state.pairHistory[k] || 0) + 1;
+      }
+    }
+  }
+
+  // Records "these two were OPPONENTS" — one entry per cross-team pair.
+  // A repeat opponent is still avoided when a nearby substitute can
+  // dodge it, but it's weighted far below a repeat teammate, and is
+  // accepted outright when there's no reasonable substitute (see
+  // pickBestUnitGroup's OPPONENT_GAP_MS window).
+  function recordOpponentPairs(team1, team2){
+    team1.forEach(function(a){
+      team2.forEach(function(b){
+        var k = pairKey(a, b);
+        state.opponentHistory[k] = (state.opponentHistory[k] || 0) + 1;
+      });
+    });
+  }
+
+  function isMaxedOut(pid){
+    var max = state.maxGamesPerPlayer;
+    if(!max || max <= 0) return false;
+    var p = state.players[pid];
+    return !!p && (p.gamesPlayed || 0) >= max;
+  }
+
+  // Rolls this player's current wait (queuedAt to right now) into their
+  // running total, right before they're actually seated — call this once
+  // per player, right before flipping their status to "court". Only
+  // counts an actual queue wait: someone brought straight in from resting
+  // never sat in line for this court, so their wait isn't touched.
+  function recordPlayerWait(pid){
+    var p = state.players[pid];
+    if(!p || p.status !== "queue") return;
+    var waitedMs = Date.now() - (p.queuedAt || Date.now());
+    p.totalWaitMs = (p.totalWaitMs || 0) + Math.max(0, waitedMs);
+    p.waitCount = (p.waitCount || 0) + 1;
+  }
+
+  // Null until this player has actually waited through at least one
+  // queue-to-court turn — mirrors winRateOf's "no evidence yet" null.
+  function avgWaitMsOf(pid){
+    var p = state.players[pid];
+    if(!p || !p.waitCount) return null;
+    return p.totalWaitMs / p.waitCount;
+  }
+
+  // Display text for the leaderboard / player-history popup — a dash
+  // before there's anything to average, same convention as win rate.
+  function avgWaitText(pid){
+    var ms = avgWaitMsOf(pid);
+    return ms === null ? "—" : fmtElapsed(ms);
+  }
+
+  // Given a set of units that together exactly fill both teams (a
+  // locked-in pair always stays one whole unit — see buildUnits), finds
+  // the way to split them between team1 and team2 (each capped at
+  // teamSize seats) that creates the fewest repeats — weighing a repeat
+  // TEAMMATE pairing (pairHistory) far more heavily than a repeat
+  // OPPONENT matchup (opponentHistory), so a split that can dodge both
+  // wins, one that dodges the teammate repeat but not the opponent one
+  // is still strongly preferred over the reverse, and only when no split
+  // avoids a teammate repeat does that ever happen. With only a handful
+  // of units per court (at most 4, doubles with no locked pairs), trying
+  // every split is cheap. Ties keep the original front-first fill order
+  // (team1 first, in unit order) so results stay predictable when
+  // nothing repeats. Returns null only if the unit sizes can't possibly
+  // fill both teams.
+  function bestTeamSplit(units, teamSize){
+    function teammateRepeatCost(team){
+      var cost = 0;
+      for(var i=0;i<team.length;i++){
+        for(var j=i+1;j<team.length;j++){
+          cost += state.pairHistory[pairKey(team[i], team[j])] || 0;
+        }
+      }
+      return cost;
+    }
+    function opponentRepeatCost(team1, team2){
+      var cost = 0;
+      team1.forEach(function(a){
+        team2.forEach(function(b){
+          cost += state.opponentHistory[pairKey(a, b)] || 0;
+        });
+      });
+      return cost;
+    }
+    var k = units.length;
+    // Tie-break toward keeping the earliest (front-of-queue) units on
+    // team1 — tracked as the sum of unit indices assigned to team2;
+    // the highest such sum among equal-cost splits is the one that
+    // pushed the LATEST units into team2, leaving team1 front-loaded,
+    // matching the original simple front-fill order when nothing repeats.
+    var best = null, bestCost = Infinity, bestOrderScore = -Infinity;
+    for(var mask=0; mask < (1 << k); mask++){
+      var team1 = [], team2 = [];
+      var cap1 = teamSize, cap2 = teamSize;
+      var team2UnitSum = 0;
+      var ok = true;
+      for(var u=0; u<k; u++){
+        var unit = units[u];
+        if(mask & (1 << u)){
+          if(unit.size > cap2){ ok = false; break; }
+          team2 = team2.concat(unit.ids); cap2 -= unit.size;
+          team2UnitSum += u;
+        }else{
+          if(unit.size > cap1){ ok = false; break; }
+          team1 = team1.concat(unit.ids); cap1 -= unit.size;
+        }
+      }
+      if(!ok || cap1 !== 0 || cap2 !== 0) continue;
+      var tmCost = teammateRepeatCost(team1) + teammateRepeatCost(team2);
+      var opCost = opponentRepeatCost(team1, team2);
+      var cost = tmCost * 1000 + opCost;
+      if(cost < bestCost || (cost === bestCost && team2UnitSum > bestOrderScore)){
+        best = { team1:team1, team2:team2, cost:cost, teammateCost:tmCost, opponentCost:opCost };
+        bestCost = cost; bestOrderScore = team2UnitSum;
+      }
+    }
+    return best;
+  }
+
+  // 0 means "no rating set" — treated as its own group (unrated players
+  // only match with other unrated players) when same-rating matching
+  // is on, rather than being a free-for-all wildcard.
+  function ratingOf(pid){
+    var p = state.players[pid];
+    return p ? (p.rating || 0) : 0;
+  }
+
+  // Null (no evidence yet) until a player has actually finished a game —
+  // an 0-game player can neither bridge up nor down, since there's no
+  // record to judge them by.
+  function winRateOf(pid){
+    var p = state.players[pid];
+    if(!p || !((p.gamesPlayed || 0) > 0)) return null;
+    return (p.wins || 0) / p.gamesPlayed;
+  }
+
+  // The yardstick "bridge" candidates (below) are measured against —
+  // the average win rate among a pool of players who've actually played
+  // at least one game. Null when nobody in the pool has any games yet,
+  // which simply turns bridging off until there's a record to compare to.
+  function averageWinRate(pool){
+    var sum = 0, n = 0;
+    pool.forEach(function(pid){
+      var r = winRateOf(pid);
+      if(r !== null){ sum += r; n++; }
+    });
+    return n ? sum / n : null;
+  }
+
+  // When "only match players with the same rating" is on, narrows an
+  // eligible (front-of-queue-first) list down to the front player's
+  // rating group — the front player always sets the target rating for
+  // fairness, same as they always anchor the group itself. A locked-in
+  // partner is always kept even if their own rating differs, so the
+  // rating filter can never split a pair apart — pairing still wins.
+  //
+  // If that strict group comes up short of the `n` seats needed, a
+  // fallback kicks in before giving up on filling the court: a player
+  // rated exactly one star below the target whose win rate beats the
+  // session average (they're over-performing their rating) — or one star
+  // above whose win rate falls below it (they're under-performing
+  // theirs) — is allowed to "bridge" into the group. Only as many bridge
+  // players as are actually needed get pulled in, taken in queue order
+  // same as everyone else. This keeps the queue moving instead of
+  // deadlocking on an exact-rating match that may never come, while
+  // same-rating groups stay the norm whenever there are enough of them.
+  function filterEligibleByRating(eligible, n){
+    if(!state.ratingMatchEnabled || !eligible.length) return eligible;
+    var frontRating = ratingOf(eligible[0]);
+
+    var keep = {};
+    eligible.forEach(function(pid){
+      if(ratingOf(pid) === frontRating) keep[pid] = true;
+    });
+    function keepPartnersToo(){
+      eligible.forEach(function(pid){
+        var p = state.players[pid];
+        if(keep[pid] && p && p.partnerId && !keep[p.partnerId] && eligible.indexOf(p.partnerId) !== -1){
+          keep[p.partnerId] = true;
+        }
+      });
+    }
+    keepPartnersToo();
+
+    var strictCount = eligible.filter(function(pid){ return keep[pid]; }).length;
+    if(!n || strictCount >= n) return eligible.filter(function(pid){ return keep[pid]; });
+
+    var avg = averageWinRate(eligible);
+    if(avg === null) return eligible.filter(function(pid){ return keep[pid]; });
+
+    var bridgeCandidates = eligible.filter(function(pid){
+      if(keep[pid]) return false;
+      var r = ratingOf(pid);
+      var wr = winRateOf(pid);
+      if(wr === null) return false;
+      if(r === frontRating - 1 && wr > avg) return true;  // over-performing a lower rating — bridges up
+      if(r === frontRating + 1 && wr < avg) return true;  // under-performing a higher rating — bridges down
+      return false;
+    });
+    var needed = n - strictCount;
+    bridgeCandidates.slice(0, needed).forEach(function(pid){ keep[pid] = true; });
+    keepPartnersToo();
+
+    return eligible.filter(function(pid){ return keep[pid]; });
+  }
+
+  // Groups the eligible queue into "units" in queue order — a locked-in
+  // pair becomes one two-seat unit (only when BOTH partners are currently
+  // eligible), everyone else is their own one-seat unit. Building groups
+  // out of units instead of raw ids means a pair can never be split across
+  // two different court groups, or across the two teams on the same court.
+  function buildUnits(eligible, pairingEnabled){
+    var units = [];
+    var seen = {};
+    eligible.forEach(function(pid){
+      if(seen[pid]) return;
+      var p = state.players[pid];
+      var partnerId = pairingEnabled && p && p.partnerId;
+      if(partnerId && eligible.indexOf(partnerId) !== -1 && !seen[partnerId]){
+        units.push({ ids:[pid, partnerId], size:2 });
+        seen[pid] = true; seen[partnerId] = true;
+      }else{
+        units.push({ ids:[pid], size:1 });
+        seen[pid] = true;
+      }
+    });
+    return units;
+  }
+
+  // A substitute pulled from further back in the queue to dodge a repeat
+  // (teammate or opponent) is only considered when their own wait comes
+  // within this much of the wait time of the player they'd be bumping —
+  // "someone with at least a 2-3 minute gap," per how this was asked for
+  // — so the search for a repeat-free group never reaches deep into the
+  // queue and never meaningfully disadvantages whoever's been waiting
+  // the strict-order amount of time.
+  var OPPONENT_GAP_MS = 3 * 60000;
+
+  function unitWaitAt(unit){
+    var p = state.players[unit.ids[0]];
+    return (p && p.queuedAt) || 0;
+  }
+
+  // Same idea as pickBestGroupFrom, but works over units (size 1 or 2)
+  // instead of individual ids, so a locked-in pair's two-seat unit is
+  // always taken or left whole. The very first unit is always included
+  // (front-of-queue fairness — this is what makes the longest-waiting
+  // player always get seated); the rest of the group is the
+  // best-scoring combination of upcoming units that exactly fills the
+  // remaining seats. "Best" is scored by the LOWEST combined repeat cost
+  // actually achievable for that set of units (via bestTeamSplit) —
+  // weighing a repeat TEAMMATE far above a repeat OPPONENT — so a
+  // candidate who's previously played WITH or AGAINST someone in this
+  // set is never penalized as long as some split of the two teams avoids
+  // it. The search can reach past the strict next-in-line units to dodge
+  // a repeat, but only among units whose wait is within OPPONENT_GAP_MS
+  // of where strict queue order would have cut off — see unitWaitAt —
+  // so a long-waiting repeat is still preferred over reaching deep into
+  // the queue for a short-waiting stranger. Returns {front, chosen} —
+  // the chosen units, not a flat id list — so the caller can hand them
+  // to bestTeamSplit without ever splitting a pair's two seats across
+  // team 1 / team 2.
+  function pickBestUnitGroup(units, n){
+    if(!units.length) return null;
+    var front = units[0];
+    if(front.size > n) return null;
+    var remainingNeeded = n - front.size;
+    var teamSize = Math.max(1, Math.floor(n / 2));
+    if(remainingNeeded === 0) return { front:front, chosen:[] };
+
+    var rest = units.slice(1);
+
+    if(!state.avoidRepeats){
+      var chosen = [];
+      var remain = remainingNeeded;
+      for(var i=0;i<rest.length && remain>0;i++){
+        if(rest[i].size <= remain){ chosen.push(rest[i]); remain -= rest[i].size; }
+      }
+      return remain === 0 ? { front:front, chosen:chosen } : null;
+    }
+
+    // Where a strict, no-avoidance fill would naturally cut off — the
+    // wait time of the last unit it would have picked.
+    var cutoffWaitAt = null;
+    (function(){
+      var seats = 0;
+      for(var i=0;i<rest.length;i++){
+        seats += rest[i].size;
+        if(seats >= remainingNeeded){ cutoffWaitAt = unitWaitAt(rest[i]); return; }
+      }
+      if(rest.length) cutoffWaitAt = unitWaitAt(rest[rest.length - 1]);
+    })();
+
+    // unitWaitAt is a queuedAt TIMESTAMP, not a duration — a SMALLER
+    // value means an EARLIER join time, i.e. a LONGER wait. Every unit at
+    // or before the natural cutoff always qualifies (queuedAt <=
+    // cutoffWaitAt); a unit past it (joined later, waited less) only
+    // qualifies when it's still within OPPONENT_GAP_MS of the cutoff.
+    var eligibleRestIdx = [];
+    for(var ri=0; ri<rest.length; ri++){
+      if(cutoffWaitAt === null || unitWaitAt(rest[ri]) <= cutoffWaitAt + OPPONENT_GAP_MS){
+        eligibleRestIdx.push(ri);
+      }
+    }
+    // Safety cap so the search stays small even with a very long queue
+    // or a generous gap.
+    var windowIdx = eligibleRestIdx.slice(0, Math.max(n * 4, 16));
+    var windowUnits = windowIdx.map(function(i){ return rest[i]; });
+
+    var best = null, bestScore = Infinity;
+
+    function search(idx, chosenIdx, sizeLeft){
+      if(sizeLeft === 0){
+        var groupUnits = [front].concat(chosenIdx.map(function(i){ return windowUnits[i]; }));
+        var split = bestTeamSplit(groupUnits, teamSize);
+        var repeatCost = split ? split.cost : 0;
+        // Position penalty uses the unit's real index in `rest` (not its
+        // filtered position in windowUnits), so reaching further into
+        // the actual queue always costs more, on top of the wait-gap
+        // filter above already keeping the window itself fair.
+        var positionSum = chosenIdx.reduce(function(s,i){ return s + windowIdx[i]; }, 0);
+        var score = repeatCost * 1000 + positionSum;
+        if(score < bestScore){ bestScore = score; best = chosenIdx.slice(); }
+        return;
+      }
+      if(idx >= windowUnits.length) return;
+      if(windowUnits[idx].size <= sizeLeft){
+        chosenIdx.push(idx);
+        search(idx+1, chosenIdx, sizeLeft - windowUnits[idx].size);
+        chosenIdx.pop();
+      }
+      search(idx+1, chosenIdx, sizeLeft);
+    }
+    search(0, [], remainingNeeded);
+    if(!best) return null;
+    return { front:front, chosen:best.map(function(i){ return windowUnits[i]; }) };
+  }
+
+  // Picks playersPerCourt ids for the next open court, team1 first then
+  // team2. Players who've hit the max-games-per-player cap are skipped
+  // (they stay in the queue, just not selected). Locked-in pairs are
+  // treated as a single unit the whole way through — see buildUnits — so
+  // partners always end up seated together, on the same team, whenever
+  // either of them gets picked.
+  function pickNextGroup(queueIds){
+    var n = state.playersPerCourt;
+    var eligible = (queueIds || state.queueOrder).filter(function(pid){ return !isMaxedOut(pid); });
+    if(eligible.length < n) return null;
+
+    eligible = filterEligibleByRating(eligible, n);
+    if(eligible.length < n) return null;
+
+    var teamSize = Math.max(1, Math.floor(n / 2));
+    var pairingEnabled = teamSize >= 2;
+    var units = buildUnits(eligible, pairingEnabled);
+
+    var picked = pickBestUnitGroup(units, n);
+    if(!picked) return null;
+    return binPackUnits(picked.front, picked.chosen, teamSize);
+  }
+
+  // Splits the chosen units between team1 and team2 using bestTeamSplit —
+  // the arrangement with the fewest repeats overall, teammate repeats
+  // weighed far above opponent repeats (never splitting a locked-in
+  // pair's two seats apart either way).
+  function binPackUnits(frontUnit, restUnits, teamSize){
+    var allUnits = [frontUnit].concat(restUnits);
+    var split = bestTeamSplit(allUnits, teamSize);
+    if(!split) return null; // shouldn't happen — sizes always sum to n
+    return split.team1.concat(split.team2);
+  }
+
+  // When a court's own "Up next" preview has been hand-edited
+  // (courtPreviewOverrides), honors it exactly at fill time — completing
+  // any still-open seats from whoever's actually available in the real
+  // queue right now (excluding anyone reserved by another manual edit
+  // elsewhere) — rather than falling back to the ordinary algorithm.
+  // Returns null (never seats anyone) if an open seat can't be filled.
+  function resolveCourtGroupForFill(courtIndex){
+    var override = courtPreviewOverrides[courtIndex];
+    if(!override) return pickNextGroup();
+    var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
+    var chosenIds = {};
+    override.team1.concat(override.team2).forEach(function(id){ if(id) chosenIds[id] = true; });
+    var reserved = reservedFromOverrides();
+    var pool = state.queueOrder.filter(function(id){
+      return !chosenIds[id] && !reserved[id] && !isMaxedOut(id);
+    });
+    var match = { team1: override.team1.slice(), team2: override.team2.slice() };
+    fillNullSlotsForMatch(match, teamSize, pool);
+    var combined = match.team1.concat(match.team2);
+    if(combined.length !== state.playersPerCourt || combined.some(function(id){ return !id; })) return null;
+    return combined;
+  }
+
+  // Fills one specific open court, if there's a fair group ready for it —
+  // honoring a manual edit to its own preview (see resolveCourtGroupForFill)
+  // when one is in effect. Returns true when it actually seated players.
+  function fillCourt(courtIndex){
+    var court = state.courts[courtIndex];
+    if(!court || court.players.length > 0) return false;
+    var taken = resolveCourtGroupForFill(courtIndex);
+    if(!taken) return false;
+    state.queueOrder = state.queueOrder.filter(function(id){ return taken.indexOf(id) === -1; });
+    taken.forEach(function(pid){ recordPlayerWait(pid); state.players[pid].status = "court"; });
+    var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
+    var team1 = taken.slice(0, teamSize), team2 = taken.slice(teamSize);
+    recordTeammatePairs(team1);
+    recordTeammatePairs(team2);
+    recordOpponentPairs(team1, team2);
+    court.players = taken;
+    court.startedAt = Date.now();
+    delete courtPreviewOverrides[courtIndex];
+    delete lastCourtPreviews[courtIndex];
+    delete courtAutofillRequested[courtIndex];
+    return true;
+  }
+
+  // Cleans both manual-edit override maps (an open court's own "Up next"
+  // preview, and the Upcoming Matches cards further down) the same way —
+  // dropping any slot that no longer points at a waiting, eligible, not
+  // already-duplicated player — so every render starts from a valid set
+  // before anything reads them.
+  function cleanAllOverrides(){
+    state.courts.forEach(function(court, idx){
+      var norm = normalizeUpcomingOverride(courtPreviewOverrides[idx]);
+      if(norm) courtPreviewOverrides[idx] = norm;
+      else delete courtPreviewOverrides[idx];
+    });
+    var maxCards = 5;
+    for(var k=0;k<maxCards;k++){
+      var normU = normalizeUpcomingOverride(upcomingOverrides[k]);
+      if(normU) upcomingOverrides[k] = normU;
+      else delete upcomingOverrides[k];
+    }
+  }
+
+  // Every player id currently pinned by hand anywhere — an open court's
+  // own preview, or an Upcoming Matches card — shared between both
+  // systems so neither one's auto-fill ever double-picks someone the
+  // other has already placed.
+  function reservedFromOverrides(){
+    var reserved = {};
+    Object.keys(courtPreviewOverrides).forEach(function(idx){
+      courtPreviewOverrides[idx].team1.concat(courtPreviewOverrides[idx].team2).forEach(function(id){ if(id) reserved[id] = true; });
+    });
+    Object.keys(upcomingOverrides).forEach(function(idx){
+      upcomingOverrides[idx].team1.concat(upcomingOverrides[idx].team2).forEach(function(id){ if(id) reserved[id] = true; });
+    });
+    return reserved;
+  }
+
+  // Previews, without touching real state, which queued players would be
+  // seated on each open court if it filled right now — courts are
+  // considered in board order, each one "claiming" its group before the
+  // next open court's preview is computed, so two open courts never
+  // preview overlapping players. An open court whose preview has been
+  // hand-edited (courtPreviewOverrides) shows that instead — still
+  // possibly with open seats of its own, filled from here only when its
+  // "Auto-fill open seat" button was just clicked (courtAutofillRequested).
+  // Also hands back whatever's left in the simulated queue afterward, so
+  // the bottom "Queue Courts" section (and this same court's own swap
+  // picker) can keep going from there instead of re-showing the same
+  // matchups.
+  function computeQueuePreviews(){
+    var previews = {};
+    var reserved = reservedFromOverrides();
+    var simQueue = state.queueOrder.filter(function(id){ return !reserved[id]; });
+    var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
+    state.courts.forEach(function(court, idx){
+      if(court.players.length > 0) return;
+      var override = courtPreviewOverrides[idx];
+      if(override){
+        var match = { team1: override.team1.slice(), team2: override.team2.slice() };
+        if(courtAutofillRequested[idx]){
+          fillNullSlotsForMatch(match, teamSize, simQueue);
+          courtPreviewOverrides[idx] = { team1: match.team1.slice(), team2: match.team2.slice() };
+        }
+        delete courtAutofillRequested[idx];
+        previews[idx] = match;
+        lastCourtPreviews[idx] = match;
+        match.team1.concat(match.team2).forEach(function(id){
+          if(!id) return;
+          var pos = simQueue.indexOf(id);
+          if(pos !== -1) simQueue.splice(pos, 1);
+        });
+        return;
+      }
+      var group = pickNextGroup(simQueue);
+      if(group){
+        simQueue = simQueue.filter(function(id){ return group.indexOf(id) === -1; });
+        var g = { team1: group.slice(0, teamSize), team2: group.slice(teamSize) };
+        previews[idx] = g;
+        lastCourtPreviews[idx] = g;
+      }else{
+        previews[idx] = null;
+        delete lastCourtPreviews[idx];
+      }
+    });
+    return { byCourt: previews, leftoverQueue: simQueue };
+  }
+
+  function autofillCourts(){
+    if(!state.autoFillEnabled) return;
+    for(var i=0;i<state.courts.length;i++){
+      if(state.courts[i].players.length === 0) fillCourt(i);
+    }
+  }
+
+  function addPlayersFromNames(names){
+    if(!names || !names.length) return;
+    names.forEach(function(name){
+      var id = uid();
+      state.players[id] = { id:id, name:name, gamesPlayed:0, wins:0, status:"queue", queuedAt: Date.now() };
+      state.queueOrder.push(id);
+    });
+    sortQueueByWaitTime();
+    autofillCourts();
+    render();
+  }
+
+  function addPlayersFromText(text){
+    var names = text.split(/[,\n]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    addPlayersFromNames(names);
+  }
+
+  // Imported players land in the roster (not checked in) instead of going
+  // straight into the queue — they need a tap on "Check in" first. They
+  // default to a 3-star rating (a reasonable middle guess for someone
+  // whose actual skill isn't known yet) rather than unrated, so same-rating
+  // matching has something to work with right away; adjust from their
+  // match-history popup (click their name) whenever their real rating is known.
+  function addPlayersFromNamesToRoster(names){
+    if(!names || !names.length) return;
+    names.forEach(function(name){
+      var id = uid();
+      state.players[id] = { id:id, name:name, gamesPlayed:0, wins:0, status:"roster",
+        queuedAt: null, partnerId: null, gender: "", rating: 3 };
+      state.rosterOrder.push(id);
+    });
+    render();
+  }
+
+  // Checking someone in only joins the queue — it deliberately does NOT
+  // call autofillCourts(), even if a court happens to be open right now.
+  // A newly checked-in player shows up in the Waiting Queue and in the
+  // Upcoming Matches preview right away (both already reflect the queue
+  // live), but an actual court only starts once someone explicitly fills
+  // it (the "Auto-select players" button). This keeps checking a batch of
+  // people in from silently kicking off a match nobody asked to start yet
+  // — same reasoning as why ending a game doesn't auto-start the next one
+  // either (see finalizeEndGame).
+  function checkInFromRoster(pid){
+    var p = state.players[pid];
+    if(!p || p.status !== "roster") return;
+    state.rosterOrder = state.rosterOrder.filter(function(id){ return id !== pid; });
+    p.status = "queue";
+    p.queuedAt = Date.now();
+    state.queueOrder.push(pid);
+    sortQueueByWaitTime();
+    render();
+  }
+
+  function removeFromRoster(pid){
+    state.rosterOrder = state.rosterOrder.filter(function(id){ return id !== pid; });
+    delete state.players[pid];
+    render();
+  }
+
+  // ---------- locked-in pairs ----------
+  // Two queued players can be marked as partners so they always take a
+  // court together (doubles only, front-of-queue only — see pickNextGroup).
+
+  function unpairPlayerSilent(pid){
+    var p = state.players[pid];
+    if(!p || !p.partnerId) return;
+    var otherId = p.partnerId;
+    var other = state.players[otherId];
+    p.partnerId = null;
+    if(other) other.partnerId = null;
+  }
+
+  function unpairPlayer(pid){
+    unpairPlayerSilent(pid);
+    render();
+  }
+
+  function pairPlayers(pidA, pidB){
+    if(!pidA || !pidB || pidA === pidB) return;
+    var a = state.players[pidA], b = state.players[pidB];
+    if(!a || !b) return;
+    // break any existing pairings first so nobody has two partners
+    unpairPlayerSilent(pidA);
+    unpairPlayerSilent(pidB);
+    a.partnerId = pidB;
+    b.partnerId = pidA;
+    pairingPickerFor = null;
+    render();
+  }
+
+  // ---------- roster import (paste or .csv/.txt upload) ----------
+  // Reclub has no public export or API today, so this parses whatever a
+  // person copies off an RSVP/check-in screen (or a CSV) into a name list.
+
+  var IMPORT_STATUS_WORDS = ["checked in","checked-in","check in","going","not going","maybe",
+    "yes","no","rsvp","rsvp'd","rsvpd","paid","unpaid","confirmed","waitlist","waitlisted",
+    "pending","host","organizer","member","guest","name","player","player name","attendee"];
+
+  function looksLikeUsableField(f){
+    var lower = f.toLowerCase();
+    if(IMPORT_STATUS_WORDS.indexOf(lower) !== -1) return false;
+    if(/^\d+$/.test(f)) return false;                 // pure number
+    if(/@/.test(f)) return false;                      // email
+    if(/^\+?[\d\-\(\) ]{7,}$/.test(f)) return false;    // phone-ish
+    if(/^\d{1,2}:\d{2}/.test(f)) return false;          // time
+    if(!/[a-zA-Z]/.test(f)) return false;                // no letters
+    return true;
+  }
+
+  function stripLeadingNumbering(f){
+    // "1. Tyler B." / "12) Grace M." -> "Tyler B." / "Grace M."
+    return f.replace(/^\d+[.)]\s*/, "");
+  }
+
+  function parseImportText(text){
+    var lines = (text || "").split(/\r?\n/);
+    var names = [];
+    lines.forEach(function(line){
+      var trimmed = line.trim();
+      if(!trimmed) return;
+      var fields = trimmed.split(/\t|,/)
+        .map(function(f){ return stripLeadingNumbering(f.trim()).trim(); })
+        .filter(Boolean);
+      if(!fields.length) return;
+      // skip an obvious header row, e.g. "Name, Status, Paid"
+      if(fields.every(function(f){ return IMPORT_STATUS_WORDS.indexOf(f.toLowerCase()) !== -1; })) return;
+      for(var i=0;i<fields.length;i++){
+        if(looksLikeUsableField(fields[i])){ names.push(fields[i]); break; }
+      }
+    });
+    return names;
+  }
+
+  function existingActiveNamesLower(){
+    var set = {};
+    Object.keys(state.players).forEach(function(id){
+      var p = state.players[id];
+      if(p.status === "queue" || p.status === "court" || p.status === "resting" || p.status === "roster"){
+        set[p.name.trim().toLowerCase()] = true;
+      }
+    });
+    return set;
+  }
+
+  function renderImportPreview(){
+    var text = document.getElementById("importText").value;
+    var names = parseImportText(text);
+    // Alphabetical rather than whatever order they were pasted/uploaded
+    // in — easier to scan for a specific name in a long RSVP list, and
+    // this same order carries through to the roster once they're
+    // imported (the "Import selected" click just reads the checkboxes
+    // in the order they appear here).
+    names.sort(function(a, b){ return a.localeCompare(b, undefined, { sensitivity:"base" }); });
+    var existing = existingActiveNamesLower();
+    var preview = document.getElementById("importPreview");
+    var summary = document.getElementById("importSummary");
+    var addBtn = document.getElementById("importAddBtn");
+    preview.innerHTML = "";
+
+    if(!names.length){
+      summary.textContent = "Paste or upload a list to see a preview.";
+      addBtn.disabled = true;
+      return;
+    }
+
+    var list = el("ul", { class:"import-list" });
+    names.forEach(function(name, i){
+      var isDupe = !!existing[name.trim().toLowerCase()];
+      var cbId = "importChk" + i;
+      var checkbox = el("input", { type:"checkbox", id:cbId });
+      checkbox.checked = !isDupe;
+      checkbox.dataset.name = name;
+      var row = el("li", { class:"import-row" + (isDupe ? " dupe" : "") }, [
+        checkbox,
+        el("label", { class:"iname", "for":cbId, text:name }),
+        isDupe ? el("span", { class:"idupe-tag", text:"already listed" }) : null
+      ]);
+      list.appendChild(row);
+    });
+    preview.appendChild(list);
+    var dupeCount = names.filter(function(n){ return existing[n.trim().toLowerCase()]; }).length;
+    summary.textContent = "Found " + names.length + " name" + (names.length===1?"":"s") +
+      (dupeCount ? " (" + dupeCount + " look already listed and are unchecked)" : "") + ".";
+    addBtn.disabled = false;
+  }
+
+  function teamsForCourt(court){
+    var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
+    return {
+      team1: court.players.slice(0, teamSize),
+      team2: court.players.slice(teamSize)
+    };
+  }
+
+  // Two-step, on-page confirmation (no native browser dialogs, which some
+  // embedded viewers block) — picking a team just arms the confirm step;
+  // the actual rotation only happens once "Yes, end game" is tapped.
+  function requestEndGame(courtIndex, winnerTeam){
+    pendingConfirm[courtIndex] = winnerTeam;
+    editingPlayerId = null;
+    changingCourtSlot = null;
+    render();
+  }
+
+  function cancelEndGameConfirm(courtIndex){
+    delete pendingConfirm[courtIndex];
+    render();
+  }
+
+  function confirmEndGame(courtIndex){
+    var winnerTeam = pendingConfirm[courtIndex];
+    delete pendingConfirm[courtIndex];
+    if(winnerTeam) finalizeEndGame(courtIndex, winnerTeam);
+  }
+
+  function finalizeEndGame(courtIndex, winnerTeam){
+    var court = state.courts[courtIndex];
+    if(!court.players.length) return;
+    var teams = teamsForCourt(court);
+    var winnerIds = winnerTeam === 1 ? teams.team1 : teams.team2;
+
+    court.players.forEach(function(pid){
+      var p = state.players[pid];
+      p.gamesPlayed += 1;
+      if(winnerIds.indexOf(pid) !== -1) p.wins = (p.wins || 0) + 1;
+      p.status = "queue";
+      p.queuedAt = Date.now();
+      state.queueOrder.push(pid);
+    });
+
+    var endedAt = Date.now();
+    state.matchHistory.unshift({
+      id: uid(),
+      courtLabel: court.label || ("Court " + (courtIndex + 1)),
+      timestamp: endedAt,
+      // How long the match actually ran, start to finish — shown as a
+      // fixed duration in Match History rather than a ticking "X ago".
+      durationMs: court.startedAt ? Math.max(0, endedAt - court.startedAt) : null,
+      team1: teams.team1.map(function(pid){ return { id:pid, name: state.players[pid].name }; }),
+      team2: teams.team2.map(function(pid){ return { id:pid, name: state.players[pid].name }; }),
+      winner: winnerTeam
+    });
+
+    court.players = [];
+    court.startedAt = null;
+    if(changingCourtSlot && changingCourtSlot.courtIndex === courtIndex) changingCourtSlot = null;
+    delete courtNotices[courtIndex];
+    sortQueueByWaitTime();
+    // Deliberately does NOT call autofillCourts() — ending a game always
+    // leaves this court open on its own editable "Up next" preview (same
+    // swap ⇄ / remove ✕ / "+ Choose" controls as any other open court),
+    // even with "Auto-select players for open courts" turned on, so there's
+    // always a beat to review or rearrange the next match before it starts.
+    // It only actually starts once "Auto-select players" is clicked.
+    render();
+  }
+
+  function swapMatchWinner(matchId){
+    var m = null;
+    for(var i=0;i<state.matchHistory.length;i++){
+      if(state.matchHistory[i].id === matchId){ m = state.matchHistory[i]; break; }
+    }
+    if(!m) return;
+    var oldWinners = m.winner === 1 ? m.team1 : m.team2;
+    var newWinnerTeam = m.winner === 1 ? 2 : 1;
+    var newWinners = newWinnerTeam === 1 ? m.team1 : m.team2;
+    oldWinners.forEach(function(pl){
+      var p = state.players[pl.id];
+      if(p) p.wins = Math.max(0, (p.wins || 0) - 1);
+    });
+    newWinners.forEach(function(pl){
+      var p = state.players[pl.id];
+      if(p) p.wins = (p.wins || 0) + 1;
+    });
+    m.winner = newWinnerTeam;
+    render();
+  }
+
+  function removeFromQueue(pid){
+    unpairPlayerSilent(pid);
+    state.queueOrder = state.queueOrder.filter(function(id){ return id !== pid; });
+    delete state.players[pid];
+    render();
+  }
+
+  function sendToRest(pid){
+    state.queueOrder = state.queueOrder.filter(function(id){ return id !== pid; });
+    state.players[pid].status = "resting";
+    state.restingOrder.push(pid);
+    render();
+  }
+
+  function rejoinFromRest(pid){
+    state.restingOrder = state.restingOrder.filter(function(id){ return id !== pid; });
+    state.players[pid].status = "queue";
+    state.players[pid].queuedAt = Date.now();
+    state.queueOrder.push(pid);
+    sortQueueByWaitTime();
+    autofillCourts();
+    render();
+  }
+
+  function removeFromRest(pid){
+    unpairPlayerSilent(pid);
+    state.restingOrder = state.restingOrder.filter(function(id){ return id !== pid; });
+    delete state.players[pid];
+    render();
+  }
+
+  function startNewSession(){
+    state = emptyState();
+    editingPlayerId = null;
+    pendingConfirm = {};
+    changingCourtSlot = null;
+    courtNotices = {};
+    editingCourtLabelIndex = null;
+    pairingPickerFor = null;
+    currentHistoryPlayerId = null;
+    upcomingOverrides = {};
+    changingUpcomingSlot = null;
+    lastUpcomingMatches = [];
+    autofillRequested = {};
+    courtPreviewOverrides = {};
+    changingCourtPreviewSlot = null;
+    lastCourtPreviews = {};
+    courtAutofillRequested = {};
+    render();
+  }
+
+  // ---------- rendering ----------
+
+  function fmtElapsed(ms){
+    if(ms < 0) ms = 0;
+    var totalSec = Math.floor(ms/1000);
+    var m = Math.floor(totalSec/60);
+    var s = totalSec % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function el(tag, attrs, children){
+    var node = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function(k){
+      if(k === "class") node.className = attrs[k];
+      else if(k === "text") node.textContent = attrs[k];
+      else if(k.indexOf("data-") === 0) node.setAttribute(k, attrs[k]);
+      else if(k === "html") node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function(c){ if(c) node.appendChild(c); });
+    return node;
+  }
+
+  function startEditName(pid){
+    editingPlayerId = pid;
+    render();
+    focusEditInput();
+  }
+
+  function saveEditName(pid, value){
+    var name = (value || "").trim();
+    if(name && state.players[pid]) state.players[pid].name = name;
+    editingPlayerId = null;
+    render();
+  }
+
+  function cancelEditName(){
+    editingPlayerId = null;
+    render();
+  }
+
+  function focusEditInput(){
+    var input = document.getElementById("editNameInput");
+    if(input){ input.focus(); input.select(); }
+  }
+
+  // Builds the name slot used in court chips and queue/resting rows — a
+  // static name with a small rename button, or an inline edit field when
+  // this player is the one currently being renamed.
+  function buildNameField(p, wrapperClass){
+    if(editingPlayerId === p.id){
+      var input = el("input", { type:"text", id:"editNameInput", class:"inline-edit-input", value:p.name });
+      var saved = false;
+      input.addEventListener("keydown", function(e){
+        if(e.key === "Enter"){ e.preventDefault(); saved = true; saveEditName(p.id, input.value); }
+        else if(e.key === "Escape"){ e.preventDefault(); saved = true; cancelEditName(); }
+      });
+      input.addEventListener("blur", function(){ if(!saved){ saved = true; saveEditName(p.id, input.value); } });
+      return el("span", { class:wrapperClass }, [ input ]);
+    }
+    var nameText = el("span", { class:"name-text", text:p.name });
+    nameText.setAttribute("title", "View " + p.name + "'s match history");
+    nameText.addEventListener("click", function(){ openPlayerHistory(p.id); });
+    var editBtn = el("button", { type:"button", class:"name-edit-btn", text:"✎" });
+    editBtn.setAttribute("aria-label", "Rename " + p.name);
+    editBtn.addEventListener("click", function(ev){ ev.stopPropagation(); startEditName(p.id); });
+    return el("span", { class:wrapperClass }, [ nameText, editBtn ]);
+  }
+
+  // On-court player chips are view + "change player" only — renaming
+  // happens from the Waiting Queue instead, so a mis-seated or substitute
+  // player never needs a name edit here.
+  function buildCourtPlayerChip(pid, courtIndex){
+    var p = state.players[pid];
+    if(!p) return null;
+
+    if(changingCourtSlot && changingCourtSlot.courtIndex === courtIndex && changingCourtSlot.pid === pid){
+      var select = el("select", { class:"change-player-select" });
+      select.appendChild(el("option", { value:"", text:"Choose replacement…" }));
+      if(state.queueOrder.length){
+        var qGroup = document.createElement("optgroup");
+        qGroup.label = "Waiting queue";
+        state.queueOrder.forEach(function(qid){
+          qGroup.appendChild(el("option", { value:qid, text:state.players[qid].name }));
+        });
+        select.appendChild(qGroup);
+      }
+      if(state.restingOrder.length){
+        var rGroup = document.createElement("optgroup");
+        rGroup.label = "Resting";
+        state.restingOrder.forEach(function(rid){
+          rGroup.appendChild(el("option", { value:rid, text:state.players[rid].name }));
+        });
+        select.appendChild(rGroup);
+      }
+      select.addEventListener("change", function(){
+        if(select.value) performPlayerChange(courtIndex, pid, select.value);
+      });
+      var cancelBtn = el("button", { type:"button", class:"name-edit-btn", text:"✕" });
+      cancelBtn.setAttribute("aria-label", "Cancel changing player");
+      cancelBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingCourtSlot = null; render(); });
+      return el("div", { class:"player-chip" }, [
+        el("span", { class:"player-name" }, [ select, cancelBtn ])
+      ]);
+    }
+
+    var nameText = el("span", { class:"name-text", text:p.name });
+    nameText.setAttribute("title", "View " + p.name + "'s match history");
+    nameText.addEventListener("click", function(){ openPlayerHistory(p.id); });
+    var changeBtn = el("button", { type:"button", class:"name-edit-btn", text:"⇄" });
+    changeBtn.setAttribute("aria-label", "Change player for " + p.name);
+    changeBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingCourtSlot = { courtIndex: courtIndex, pid: pid }; render(); });
+    var lockIcon = buildLockIcon(p);
+    var starBadge = buildStarBadge(p);
+    return el("div", { class:"player-chip" }, [
+      el("span", { class:"player-name" }, [ lockIcon, nameText, starBadge, changeBtn ])
+    ]);
+  }
+
+  // Small padlock badge shown next to a locked-in player's name wherever
+  // they're seated (a real court, or an Upcoming Matches preview slot) —
+  // a quick visual reminder that they're always seated with their partner.
+  function buildLockIcon(p){
+    if(!p || !p.partnerId || !state.players[p.partnerId]) return null;
+    var icon = el("span", { class:"lock-icon", text:"🔒" });
+    icon.setAttribute("title", "Locked in with " + state.players[p.partnerId].name);
+    return icon;
+  }
+
+  // Compact read-only star badge shown next to a rated player's name —
+  // wherever they're seated or waiting. Unrated players (rating 0) show
+  // nothing here; the rating itself is only ever set from the
+  // match-history popup (click the player's name), same place gender is set.
+  function buildStarBadge(p){
+    if(!p || !p.rating) return null;
+    var badge = el("span", { class:"star-rating" });
+    for(var i=1;i<=5;i++){
+      badge.appendChild(el("span", { class: i <= p.rating ? "filled" : "", text: i <= p.rating ? "★" : "☆" }));
+    }
+    badge.setAttribute("title", p.rating + " star" + (p.rating === 1 ? "" : "s"));
+    return badge;
+  }
+
+  function buildTeamBlock(label, ids, courtIndex, teamNum){
+    var teamGrid = el("div", { class:"players-grid" + (ids.length === 1 ? " singles" : "") });
+    ids.forEach(function(pid){
+      var chip = buildCourtPlayerChip(pid, courtIndex);
+      if(chip) teamGrid.appendChild(chip);
+    });
+    return el("div", { class:"team-block", "data-team":String(teamNum) }, [
+      el("div", { class:"team-label", text:label }),
+      teamGrid
+    ]);
+  }
+
+  // Swaps a player currently seated on a court for someone waiting (or
+  // resting) — for correcting a mistaken seating or a mid-session
+  // substitution, without ending the game. The outgoing player didn't get
+  // to finish, so they keep their original wait clock running rather than
+  // restarting at 0:00 — getting swapped off isn't the same as just now
+  // joining the queue — and sortQueueByWaitTime (below) then places them
+  // wherever that actual wait time puts them, same as everyone else.
+  function performPlayerChange(courtIndex, oldPid, newPid){
+    if(!newPid || oldPid === newPid){ changingCourtSlot = null; render(); return; }
+    var court = state.courts[courtIndex];
+    if(!court){ changingCourtSlot = null; render(); return; }
+    var slotIdx = court.players.indexOf(oldPid);
+    if(slotIdx === -1){ changingCourtSlot = null; render(); return; }
+
+    state.queueOrder = state.queueOrder.filter(function(id){ return id !== newPid; });
+    state.restingOrder = state.restingOrder.filter(function(id){ return id !== newPid; });
+
+    court.players[slotIdx] = newPid;
+    recordPlayerWait(newPid);
+    state.players[newPid].status = "court";
+
+    state.players[oldPid].status = "queue";
+    if(!state.players[oldPid].queuedAt){
+      // only backfill a timestamp if they never had one (e.g. seeded
+      // straight onto a court) — otherwise their existing wait clock
+      // just keeps counting from whenever they actually last queued.
+      state.players[oldPid].queuedAt = Date.now();
+    }
+    state.queueOrder.push(oldPid);
+    sortQueueByWaitTime();
+
+    // If the player just brought in is locked in with a partner who isn't
+    // part of this same court, flag it — swapping one half of a pair onto
+    // a court without the other breaks the "always play together" rule,
+    // so it needs a visible heads-up rather than failing silently.
+    var newPlayer = state.players[newPid];
+    if(newPlayer && newPlayer.partnerId && state.players[newPlayer.partnerId] && court.players.indexOf(newPlayer.partnerId) === -1){
+      courtNotices[courtIndex] = newPlayer.name + " is locked in with " + state.players[newPlayer.partnerId].name + ", who isn't on this court.";
+    }else{
+      delete courtNotices[courtIndex];
+    }
+
+    changingCourtSlot = null;
+    render();
+  }
+
+  // Builds the court heading — a static name with a small rename button, or
+  // an inline edit field when this court's name is being edited. Falls back
+  // to "Court N" until someone gives it a custom name.
+  function buildCourtLabelField(idx){
+    var court = state.courts[idx];
+    var displayLabel = court.label || ("Court " + (idx + 1));
+    if(editingCourtLabelIndex === idx){
+      var input = el("input", { type:"text", id:"editCourtLabelInput", class:"court-num-edit-input", value:displayLabel });
+      var saved = false;
+      input.addEventListener("keydown", function(e){
+        if(e.key === "Enter"){ e.preventDefault(); saved = true; saveEditCourtLabel(idx, input.value); }
+        else if(e.key === "Escape"){ e.preventDefault(); saved = true; cancelEditCourtLabel(); }
+      });
+      input.addEventListener("blur", function(){ if(!saved){ saved = true; saveEditCourtLabel(idx, input.value); } });
+      return el("span", { class:"court-num-wrap editing" }, [ input ]);
+    }
+    var labelText = el("span", { class:"court-num", text:displayLabel });
+    var editBtn = el("button", { type:"button", class:"name-edit-btn", text:"✎" });
+    editBtn.setAttribute("aria-label", "Rename " + displayLabel);
+    editBtn.addEventListener("click", function(ev){ ev.stopPropagation(); startEditCourtLabel(idx); });
+    return el("span", { class:"court-num-wrap" }, [ labelText, editBtn ]);
+  }
+
+  function startEditCourtLabel(idx){
+    editingCourtLabelIndex = idx;
+    render();
+    var input = document.getElementById("editCourtLabelInput");
+    if(input){ input.focus(); input.select(); }
+  }
+
+  function saveEditCourtLabel(idx, value){
+    var name = (value || "").trim();
+    if(state.courts[idx]) state.courts[idx].label = name || null;
+    editingCourtLabelIndex = null;
+    render();
+  }
+
+  function cancelEditCourtLabel(){
+    editingCourtLabelIndex = null;
+    render();
+  }
+
+  function renderStats(){
+    var strip = document.getElementById("statsStrip");
+    strip.innerHTML = "";
+    var openCourts = state.courts.filter(function(c){ return c.players.length === 0; }).length;
+    var totalPlayers = Object.keys(state.players).length;
+    var stats = [
+      [String(state.matchHistory.length), "Matches played"],
+      [String(totalPlayers), "Players today"],
+      [openCourts + " / " + state.courts.length, "Courts open"],
+      [String(state.queueOrder.length), "In queue"]
+    ];
+    stats.forEach(function(s){
+      strip.appendChild(el("div", { class:"stat" }, [
+        el("div", { class:"n", text:s[0] }),
+        el("div", { class:"l", text:s[1] })
+      ]));
+    });
+  }
+
+  function renderCourts(){
+    var grid = document.getElementById("courtsGrid");
+    grid.innerHTML = "";
+    var openCourts = state.courts.filter(function(c){ return c.players.length === 0; }).length;
+    var qp = computeQueuePreviews();
+    var previews = qp.byCourt;
+
+    state.courts.forEach(function(court, idx){
+      var isOpen = court.players.length === 0;
+      var head = el("div", { class:"court-head" }, [
+        buildCourtLabelField(idx),
+        isOpen
+          ? el("span", { class:"chip open", text:"Open" })
+          : el("span", { class:"chip live", text:"In play" })
+      ]);
+
+      var body;
+      if(isOpen){
+        var have = 0; // players ready but not yet seated is always 0 right after autofill; show queue depth instead
+        var need = state.playersPerCourt;
+        var eligibleWaiting = filterEligibleByRating(state.queueOrder.filter(function(pid){ return !isMaxedOut(pid); }), need).length;
+        var short = Math.max(0, need - eligibleWaiting);
+        var msg = eligibleWaiting >= need
+          ? "Waiting to be seated…"
+          : state.ratingMatchEnabled
+            ? "Needs " + short + " more at the next player's rating"
+            : "Needs " + short + " more in queue";
+        var emptyChildren = [
+          el("div", { text:"Waiting for " + need + " players" }),
+          el("div", { class:"need", text:msg })
+        ];
+        var preview = previews[idx];
+        if(preview){
+          // Editable, same chip pattern as an Upcoming Match card — swap
+          // (⇄), remove (✕ → "Open seat" → "+ Choose"), all scoped to this
+          // court's own preview until it's actually filled.
+          var previewWrap = el("div", { class:"queue-preview" }, [
+            el("div", { class:"qp-label", text:"Up next" }),
+            el("div", { class:"teams-wrap" }, [
+              buildCourtPreviewTeamBlock(idx, "Team 1", preview.team1, 1, qp.leftoverQueue),
+              buildCourtPreviewTeamBlock(idx, "Team 2", preview.team2, 2, qp.leftoverQueue)
+            ])
+          ]);
+          var hasOpenSeatInPreview = preview.team1.concat(preview.team2).some(function(id){ return !id; });
+          if(hasOpenSeatInPreview){
+            var previewAutoBtn = el("button", { type:"button", class:"ghost", style:"margin-top:6px;align-self:stretch;", text:"Auto-fill open seat" });
+            var courtIdxForPreviewFill = idx;
+            previewAutoBtn.addEventListener("click", function(){
+              courtAutofillRequested[courtIdxForPreviewFill] = true;
+              changingCourtPreviewSlot = null;
+              render();
+            });
+            previewWrap.appendChild(previewAutoBtn);
+          }
+          emptyChildren.push(previewWrap);
+        }
+        if(eligibleWaiting >= need){
+          var fillBtn = el("button", { type:"button", class:"ghost", style:"margin-top:8px;", text:"Auto-select players" });
+          var courtIdxForFill = idx;
+          fillBtn.addEventListener("click", function(){
+            if(fillCourt(courtIdxForFill)) render();
+          });
+          emptyChildren.push(fillBtn);
+        }
+        body = el("div", { class:"court-body" }, [
+          el("div", { class:"empty-court" }, emptyChildren)
+        ]);
+      }else{
+        var teams = teamsForCourt(court);
+
+        var teamsWrap = el("div", { class:"teams-wrap" }, [
+          buildTeamBlock("Team 1", teams.team1, idx, 1),
+          buildTeamBlock("Team 2", teams.team2, idx, 2)
+        ]);
+
+        var timerRow = el("div", { style:"display:flex;justify-content:flex-end;" }, [
+          el("span", { class:"timer", text:fmtElapsed(Date.now() - court.startedAt), "data-started-at":String(court.startedAt) })
+        ]);
+
+        var actions;
+        if(pendingConfirm.hasOwnProperty(idx)){
+          var wt = pendingConfirm[idx];
+          var winnerIds = wt === 1 ? teams.team1 : teams.team2;
+          var winnerNames = winnerIds.map(function(pid){ return state.players[pid].name; }).join(" & ");
+          var winnerColor = wt === 1 ? "var(--team1)" : "var(--team2)";
+          actions = el("div", { class:"court-actions", style:"flex-direction:column;align-items:stretch;gap:8px;" }, [
+            el("div", { style:"font-size:12.5px;color:var(--ink-muted);text-align:center;" }, [
+              el("strong", { style:"color:" + winnerColor + ";", text:"Team " + wt }),
+              document.createTextNode(" (" + winnerNames + ") wins?")
+            ]),
+            el("div", { style:"display:flex;gap:8px;" }, [
+              el("button", { class:"ghost icon", type:"button", text:"Cancel", style:"flex:1;" }),
+              el("button", { type:"button", text:"Yes, end game", style:"flex:1;" })
+            ])
+          ]);
+          var confirmBtns = actions.children[1];
+          confirmBtns.children[0].addEventListener("click", function(){ cancelEndGameConfirm(idx); });
+          confirmBtns.children[1].addEventListener("click", function(){ confirmEndGame(idx); });
+        }else{
+          actions = el("div", { class:"court-actions team-actions" }, [
+            el("button", { class:"team1-btn", type:"button", text:"Team 1 Wins" }),
+            el("button", { class:"team2-btn", type:"button", text:"Team 2 Wins" })
+          ]);
+          actions.children[0].addEventListener("click", function(){ requestEndGame(idx, 1); });
+          actions.children[1].addEventListener("click", function(){ requestEndGame(idx, 2); });
+        }
+
+        var bodyKids = [ timerRow, teamsWrap, actions ];
+        if(courtNotices[idx]){
+          bodyKids.push(el("div", { class:"repeat-warning", text:"⚠ " + courtNotices[idx] }));
+        }
+        body = el("div", { class:"court-body" }, bodyKids);
+      }
+
+      grid.appendChild(el("div", { class:"court" + (isOpen ? " open" : "") }, [ head, body ]));
+    });
+
+    return qp.leftoverQueue;
+  }
+
+  // Builds lookup tables from completed matches this session: which pairs
+  // of players have been TEAMMATES before, and which have faced each other
+  // as OPPONENTS before — used to flag a repeat matchup in an Upcoming
+  // Match card. matchHistory is newest-first, so the first hit found for
+  // a pair while walking it IS the most recent one — each lookup entry
+  // keeps that match's index (how many games ago it was) plus who was on
+  // the other side at the time, straight from that match's own saved
+  // roster (so it stays accurate even if someone's since been renamed or
+  // removed).
+  // Repeat-partner/opponent warnings only look back this many completed
+  // games — a matchup that repeats something from 4+ games ago is common
+  // enough in a long session that flagging it just becomes noise.
+  var REPEAT_LOOKBACK_GAMES = 3;
+
+  function computeMatchHistoryLookup(){
+    var teammate = {}, opponent = {};
+    state.matchHistory.slice(0, REPEAT_LOOKBACK_GAMES).forEach(function(m, idx){
+      var t1 = m.team1 || [], t2 = m.team2 || [];
+      var namesOf = function(team){ return team.map(function(pl){ return pl.name; }); };
+      function recordTeammates(team, oppTeam){
+        for(var a=0;a<team.length;a++){
+          for(var b=a+1;b<team.length;b++){
+            var k = pairKey(team[a].id, team[b].id);
+            if(!teammate[k]) teammate[k] = { gamesAgo: idx + 1, opponents: namesOf(oppTeam) };
+          }
+        }
+      }
+      recordTeammates(t1, t2);
+      recordTeammates(t2, t1);
+      t1.forEach(function(x){
+        t2.forEach(function(y){
+          var k = pairKey(x.id, y.id);
+          if(!opponent[k]) opponent[k] = { gamesAgo: idx + 1 };
+        });
+      });
+    });
+    return { teammate:teammate, opponent:opponent };
+  }
+
+  // True when a and b are each other's locked-in partner — they're
+  // *supposed* to always play together, so repeating as teammates isn't
+  // actually a repeat worth flagging.
+  function isLockedPair(a, b){
+    var pa = state.players[a], pb = state.players[b];
+    return !!(pa && pb && pa.partnerId === b && pb.partnerId === a);
+  }
+
+  function gamesAgoText(n){ return n === 1 ? "1 game ago" : n + " games ago"; }
+
+  // Null when this team1-vs-team2 matchup is fresh; otherwise a short
+  // message naming what's repeating from a completed match this session —
+  // for a repeat partnership, how long ago they played together and who
+  // they were up against that game.
+  function matchRepeatWarning(team1, team2, hist){
+    var t1 = team1.filter(function(id){ return !!id; });
+    var t2 = team2.filter(function(id){ return !!id; });
+    var nameOf = function(id){ var p = state.players[id]; return p ? p.name : "?"; };
+
+    // Names the specific pair that's repeating, so it's never ambiguous
+    // whether a warning is about the locked-in couple (who are exempt —
+    // see isLockedPair) or the other, unlocked pair on the same card.
+    var partnerText = null;
+    var describeTeamPartner = function(team){
+      if(team.length !== 2 || isLockedPair(team[0], team[1])) return null;
+      var info = hist.teammate[pairKey(team[0], team[1])];
+      if(!info) return null;
+      var oppText = info.opponents.length ? (" (vs " + info.opponents.join(" & ") + ")") : "";
+      return nameOf(team[0]) + " & " + nameOf(team[1]) + " played together " + gamesAgoText(info.gamesAgo) + oppText;
+    };
+    partnerText = describeTeamPartner(t1) || describeTeamPartner(t2);
+
+    var opponentNotes = [];
+    t1.forEach(function(a){
+      t2.forEach(function(b){
+        var info = hist.opponent[pairKey(a, b)];
+        if(info) opponentNotes.push(nameOf(a) + " vs " + nameOf(b) + " (" + gamesAgoText(info.gamesAgo) + ")");
+      });
+    });
+
+    if(partnerText && opponentNotes.length){
+      return "Repeat partners: " + partnerText + ". Also repeat opponents: " + opponentNotes.join(", ") + ".";
+    }
+    if(partnerText){
+      return "Repeat partners: " + partnerText + ".";
+    }
+    if(opponentNotes.length){
+      return "Repeat opponents: " + opponentNotes.join(", ") + ".";
+    }
+    return null;
+  }
+
+  // A manual override is only honored while it still makes sense. Each
+  // filled-in slot has to still be a waiting, non-maxed-out queue member
+  // and not duplicated elsewhere in the same card — anything that no
+  // longer qualifies (or an explicitly removed slot) reverts to null,
+  // an "open seat" that fillNullSlotsForMatch will auto-fill on this
+  // render. Returns null (dropping the override entirely, back to full
+  // auto-fill) only once every one of its slots has gone empty.
+  function normalizeUpcomingOverride(override){
+    if(!override) return null;
+    var ids = override.team1.concat(override.team2);
+    if(ids.length !== state.playersPerCourt) return null;
+    var seen = {};
+    function cleanSlot(id){
+      if(!id) return null;
+      var p = state.players[id];
+      if(!p || p.status !== "queue" || isMaxedOut(id) || seen[id]) return null;
+      seen[id] = true;
+      return id;
+    }
+    var team1 = override.team1.map(cleanSlot);
+    var team2 = override.team2.map(cleanSlot);
+    var hasAny = team1.concat(team2).some(function(id){ return !!id; });
+    if(!hasAny) return null;
+    return { team1: team1, team2: team2 };
+  }
+
+  // Fills any empty (null) seats left in a partially-overridden match —
+  // by a manual removal, or a swap that no longer validates — pulling
+  // replacements from the shared leftover pool in queue order. When a
+  // whole team is empty and a locked-in pair is available, seats them
+  // together rather than splitting them across two separate fills.
+  // Mutates `match` in place and removes whatever it uses from `pool`.
+  function fillNullSlotsForMatch(match, teamSize, pool){
+    ["team1", "team2"].forEach(function(teamKey){
+      var team = match[teamKey];
+      var nullIdxs = [];
+      team.forEach(function(id, idx){ if(!id) nullIdxs.push(idx); });
+      if(!nullIdxs.length) return;
+
+      if(nullIdxs.length === team.length && teamSize >= 2){
+        for(var i=0;i<pool.length;i++){
+          var pid = pool[i];
+          var p = state.players[pid];
+          var pIdx = p && p.partnerId ? pool.indexOf(p.partnerId) : -1;
+          if(p && p.partnerId && pIdx !== -1 && pIdx !== i){
+            team[nullIdxs[0]] = pid;
+            team[nullIdxs[1]] = p.partnerId;
+            var hi = Math.max(i, pIdx), lo = Math.min(i, pIdx);
+            pool.splice(hi, 1);
+            pool.splice(lo, 1);
+            nullIdxs = [];
+            break;
+          }
+        }
+      }
+
+      nullIdxs.forEach(function(idx){
+        if(team[idx] || !pool.length) return;
+        var candidateIndex = pool.findIndex(function(pid){
+          var p = state.players[pid];
+          return !(p && p.partnerId && pool.indexOf(p.partnerId) !== -1);
+        });
+        if(candidateIndex === -1) candidateIndex = 0;
+        team[idx] = pool.splice(candidateIndex, 1)[0];
+      });
+    });
+  }
+
+  // Interactive team block for an Upcoming Match card — same look as a
+  // real on-court team block, with the same "change player" (⇄) control,
+  // except edits here only touch the local preview (upcomingOverrides),
+  // never the real queue or a real court.
+  function buildUpcomingTeamBlock(matchIndex, label, ids, teamNum, availableForSwap){
+    var teamGrid = el("div", { class:"players-grid" + (ids.length === 1 ? " singles" : "") });
+    ids.forEach(function(pid, slotIndex){
+      teamGrid.appendChild(buildUpcomingPlayerChip(matchIndex, teamNum, slotIndex, pid, availableForSwap));
+    });
+    return el("div", { class:"team-block", "data-team":String(teamNum) }, [
+      el("div", { class:"team-label", text:label }),
+      teamGrid
+    ]);
+  }
+
+  function buildUpcomingPlayerChip(matchIndex, teamNum, slotIndex, pid, availableForSwap){
+    var p = state.players[pid];
+
+    var editing = changingUpcomingSlot && changingUpcomingSlot.matchIndex === matchIndex &&
+      changingUpcomingSlot.team === teamNum && changingUpcomingSlot.slotIndex === slotIndex;
+
+    if(editing){
+      var select = el("select", { class:"change-player-select" });
+      select.appendChild(el("option", { value:"", text:"Choose replacement…" }));
+      availableForSwap.forEach(function(qid){
+        select.appendChild(el("option", { value:qid, text:state.players[qid].name }));
+      });
+      select.addEventListener("change", function(){
+        if(select.value) swapUpcomingSlot(matchIndex, teamNum, slotIndex, select.value);
+      });
+      var cancelBtn = el("button", { type:"button", class:"name-edit-btn", text:"✕" });
+      cancelBtn.setAttribute("aria-label", "Cancel changing player");
+      cancelBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingUpcomingSlot = null; render(); });
+      return el("div", { class:"player-chip" }, [
+        el("span", { class:"player-name" }, [ select, cancelBtn ])
+      ]);
+    }
+
+    if(!p){
+      // An open seat — left blank by a removal, or a card whose slot
+      // simply hasn't been assigned yet. Pick a player by hand, or use
+      // this card's Auto-fill button to have the algorithm fill it.
+      var pickBtn = el("button", { type:"button", class:"name-edit-btn", text:"+ Choose" });
+      pickBtn.setAttribute("aria-label", "Choose a player for this open seat");
+      pickBtn.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        changingUpcomingSlot = { matchIndex:matchIndex, team:teamNum, slotIndex:slotIndex };
+        render();
+      });
+      return el("div", { class:"player-chip open-seat" }, [
+        el("span", { class:"player-name" }, [
+          el("span", { class:"name-text", style:"color:var(--ink-muted);font-style:italic;", text:"Open seat" }),
+          pickBtn
+        ])
+      ]);
+    }
+
+    var nameText = el("span", { class:"name-text", text:p.name });
+    nameText.setAttribute("title", "View " + p.name + "'s match history");
+    nameText.addEventListener("click", function(){ openPlayerHistory(p.id); });
+    var changeBtn = el("button", { type:"button", class:"name-edit-btn", text:"⇄" });
+    changeBtn.setAttribute("aria-label", "Change player for " + p.name);
+    changeBtn.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      changingUpcomingSlot = { matchIndex:matchIndex, team:teamNum, slotIndex:slotIndex };
+      render();
+    });
+    var removeBtn = el("button", { type:"button", class:"name-edit-btn remove-slot-btn", text:"✕" });
+    removeBtn.setAttribute("title", "Remove " + p.name + " — leaves the seat open to fill by hand or with Auto-fill");
+    removeBtn.setAttribute("aria-label", "Remove " + p.name + " and leave the seat open");
+    removeBtn.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      removeUpcomingSlot(matchIndex, teamNum, slotIndex);
+    });
+    var lockIcon = buildLockIcon(p);
+    var starBadge = buildStarBadge(p);
+    return el("div", { class:"player-chip" }, [
+      el("span", { class:"player-name" }, [ lockIcon, nameText, starBadge, changeBtn, removeBtn ])
+    ]);
+  }
+
+  // Applies one slot edit to an Upcoming Match card, starting from
+  // whatever's currently shown there (an existing override, or the
+  // last auto-computed group) so changing one player never disturbs
+  // the other three.
+  function swapUpcomingSlot(matchIndex, teamNum, slotIndex, newId){
+    var current = upcomingOverrides[matchIndex] || lastUpcomingMatches[matchIndex];
+    if(!current){ changingUpcomingSlot = null; render(); return; }
+    var updated = { team1: current.team1.slice(), team2: current.team2.slice() };
+    var teamKey = teamNum === 1 ? "team1" : "team2";
+    updated[teamKey][slotIndex] = newId;
+    upcomingOverrides[matchIndex] = updated;
+    changingUpcomingSlot = null;
+    render();
+  }
+
+  // Opens up one seat in an Upcoming Match card — the removed player goes
+  // back to being just a regular queued player (no queue-position change),
+  // and the seat itself is left as an explicit "Open seat" rather than
+  // being silently refilled. From there it's either picked by hand (the
+  // "+ Choose" button that appears in its place) or filled by hitting
+  // this card's Auto-fill button, which only touches open seats and
+  // leaves the other three players on the card untouched.
+  function removeUpcomingSlot(matchIndex, teamNum, slotIndex){
+    var current = upcomingOverrides[matchIndex] || lastUpcomingMatches[matchIndex];
+    if(!current){ render(); return; }
+    var updated = { team1: current.team1.slice(), team2: current.team2.slice() };
+    var teamKey = teamNum === 1 ? "team1" : "team2";
+    updated[teamKey][slotIndex] = null;
+    upcomingOverrides[matchIndex] = updated;
+    if(changingUpcomingSlot && changingUpcomingSlot.matchIndex === matchIndex &&
+       changingUpcomingSlot.team === teamNum && changingUpcomingSlot.slotIndex === slotIndex){
+      changingUpcomingSlot = null;
+    }
+    render();
+  }
+
+  // Interactive team block for an open court's own "Up next" preview —
+  // same editable chip pattern as an Upcoming Match card (swap ⇄, remove
+  // ✕, "+ Choose" for an open seat), except edits here only touch that
+  // court's own preview (courtPreviewOverrides), never the real queue,
+  // until the court is actually filled (see resolveCourtGroupForFill).
+  function buildCourtPreviewTeamBlock(courtIndex, label, ids, teamNum, availableForSwap){
+    var teamGrid = el("div", { class:"players-grid" + (ids.length === 1 ? " singles" : "") });
+    ids.forEach(function(pid, slotIndex){
+      teamGrid.appendChild(buildCourtPreviewPlayerChip(courtIndex, teamNum, slotIndex, pid, availableForSwap));
+    });
+    return el("div", { class:"team-block", "data-team":String(teamNum) }, [
+      el("div", { class:"team-label", text:label }),
+      teamGrid
+    ]);
+  }
+
+  function buildCourtPreviewPlayerChip(courtIndex, teamNum, slotIndex, pid, availableForSwap){
+    var p = state.players[pid];
+
+    var editing = changingCourtPreviewSlot && changingCourtPreviewSlot.courtIndex === courtIndex &&
+      changingCourtPreviewSlot.team === teamNum && changingCourtPreviewSlot.slotIndex === slotIndex;
+
+    if(editing){
+      var select = el("select", { class:"change-player-select" });
+      select.appendChild(el("option", { value:"", text:"Choose replacement…" }));
+      availableForSwap.forEach(function(qid){
+        select.appendChild(el("option", { value:qid, text:state.players[qid].name }));
+      });
+      select.addEventListener("change", function(){
+        if(select.value) swapCourtPreviewSlot(courtIndex, teamNum, slotIndex, select.value);
+      });
+      var cancelBtn = el("button", { type:"button", class:"name-edit-btn", text:"✕" });
+      cancelBtn.setAttribute("aria-label", "Cancel changing player");
+      cancelBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingCourtPreviewSlot = null; render(); });
+      return el("div", { class:"player-chip" }, [
+        el("span", { class:"player-name" }, [ select, cancelBtn ])
+      ]);
+    }
+
+    if(!p){
+      // An open seat — left blank by a removal, or a preview that's short
+      // players. Pick someone by hand, or use the card's "Auto-fill open
+      // seat" button to have the algorithm fill it.
+      var pickBtn = el("button", { type:"button", class:"name-edit-btn", text:"+ Choose" });
+      pickBtn.setAttribute("aria-label", "Choose a player for this open seat");
+      pickBtn.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        changingCourtPreviewSlot = { courtIndex:courtIndex, team:teamNum, slotIndex:slotIndex };
+        render();
+      });
+      return el("div", { class:"player-chip open-seat" }, [
+        el("span", { class:"player-name" }, [
+          el("span", { class:"name-text", style:"color:var(--ink-muted);font-style:italic;", text:"Open seat" }),
+          pickBtn
+        ])
+      ]);
+    }
+
+    var nameText = el("span", { class:"name-text", text:p.name });
+    nameText.setAttribute("title", "View " + p.name + "'s match history");
+    nameText.addEventListener("click", function(){ openPlayerHistory(p.id); });
+    var changeBtn = el("button", { type:"button", class:"name-edit-btn", text:"⇄" });
+    changeBtn.setAttribute("aria-label", "Change player for " + p.name);
+    changeBtn.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      changingCourtPreviewSlot = { courtIndex:courtIndex, team:teamNum, slotIndex:slotIndex };
+      render();
+    });
+    var removeBtn = el("button", { type:"button", class:"name-edit-btn remove-slot-btn", text:"✕" });
+    removeBtn.setAttribute("title", "Remove " + p.name + " — leaves the seat open to fill by hand or with Auto-fill");
+    removeBtn.setAttribute("aria-label", "Remove " + p.name + " and leave the seat open");
+    removeBtn.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      removeCourtPreviewSlot(courtIndex, teamNum, slotIndex);
+    });
+    var lockIcon = buildLockIcon(p);
+    var starBadge = buildStarBadge(p);
+    return el("div", { class:"player-chip" }, [
+      el("span", { class:"player-name" }, [ lockIcon, nameText, starBadge, changeBtn, removeBtn ])
+    ]);
+  }
+
+  // Applies one slot edit to an open court's preview, starting from
+  // whatever's currently shown there (an existing override, or the last
+  // auto-computed preview) so changing one player never disturbs the
+  // other three.
+  function swapCourtPreviewSlot(courtIndex, teamNum, slotIndex, newId){
+    var current = courtPreviewOverrides[courtIndex] || lastCourtPreviews[courtIndex];
+    if(!current){ changingCourtPreviewSlot = null; render(); return; }
+    var updated = { team1: current.team1.slice(), team2: current.team2.slice() };
+    var teamKey = teamNum === 1 ? "team1" : "team2";
+    updated[teamKey][slotIndex] = newId;
+    courtPreviewOverrides[courtIndex] = updated;
+    changingCourtPreviewSlot = null;
+    render();
+  }
+
+  // Opens up one seat in an open court's preview — the removed player goes
+  // back to being just a regular queued player, and the seat is left as an
+  // explicit "Open seat" rather than silently refilled, same as removing a
+  // seat on an Upcoming Match card.
+  function removeCourtPreviewSlot(courtIndex, teamNum, slotIndex){
+    var current = courtPreviewOverrides[courtIndex] || lastCourtPreviews[courtIndex];
+    if(!current){ render(); return; }
+    var updated = { team1: current.team1.slice(), team2: current.team2.slice() };
+    var teamKey = teamNum === 1 ? "team1" : "team2";
+    updated[teamKey][slotIndex] = null;
+    courtPreviewOverrides[courtIndex] = updated;
+    if(changingCourtPreviewSlot && changingCourtPreviewSlot.courtIndex === courtIndex &&
+       changingCourtPreviewSlot.team === teamNum && changingCourtPreviewSlot.slotIndex === slotIndex){
+      changingCourtPreviewSlot = null;
+    }
+    render();
+  }
+
+  // The "Upcoming Matches" strip, just below the playing courts — a
+  // forward look at the matchups coming up after whatever's already
+  // previewed on the open courts above, so there's always something to
+  // glance at even when every real court is full. Cards are editable:
+  // swap any player out for another currently-waiting one (⇄), or hit
+  // Auto-fill to hand a card back to the rotation algorithm — which, same
+  // as real courts, keeps locked-in pairs together and (when "avoid
+  // repeat matchups" is on) steers away from re-pairing or re-matching
+  // two people who've already played together — pulling in a nearby
+  // substitute (within a few minutes' wait) when one's available, and
+  // only ever accepting a repeat opponent (never a repeat teammate,
+  // barring a locked-in pair) when no such substitute exists.
+  // A card also never doubles up a player who's already placed
+  // on another card, and flags it below when a matchup repeats a
+  // completed game's partners or opponents.
+  function renderQueueCourts(leftoverQueue){
+    var panel = document.getElementById("queueCourtsPanel");
+    var grid = document.getElementById("queueCourtsGrid");
+    var countEl = document.getElementById("queueCourtsCount");
+    grid.innerHTML = "";
+
+    var maxCards = 5;
+    var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
+
+    // Overrides were already cleaned this render (cleanAllOverrides, in
+    // render()); reserve every manually-placed id — from this panel's own
+    // cards AND any open court's own edited preview — so an auto-filled
+    // card here never duplicates someone already placed by hand elsewhere.
+    var reserved = reservedFromOverrides();
+
+    var pool = leftoverQueue.filter(function(id){ return !reserved[id]; });
+    var matches = [];
+    for(var i=0;i<maxCards;i++){
+      if(upcomingOverrides[i]){
+        var match = { team1: upcomingOverrides[i].team1.slice(), team2: upcomingOverrides[i].team2.slice() };
+        // An open (removed) seat stays open — shown as "Open seat" — until
+        // the user either picks someone by hand or hits this card's
+        // Auto-fill button, rather than getting silently refilled on
+        // every render.
+        if(autofillRequested[i]){
+          fillNullSlotsForMatch(match, teamSize, pool);
+          upcomingOverrides[i] = { team1: match.team1.slice(), team2: match.team2.slice() };
+        }
+        delete autofillRequested[i];
+        matches.push(match);
+        continue;
+      }
+      var group = pickNextGroup(pool);
+      if(!group){ matches.push(null); continue; }
+      var teamData = { team1: group.slice(0, teamSize), team2: group.slice(teamSize) };
+      matches.push(teamData);
+      teamData.team1.concat(teamData.team2).forEach(function(id){
+        var atIdx = pool.indexOf(id);
+        if(atIdx !== -1) pool.splice(atIdx, 1);
+      });
+    }
+    lastUpcomingMatches = matches;
+
+    var hasAny = matches.some(function(m){ return !!m; });
+    if(!hasAny){
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    countEl.textContent = String(matches.filter(function(m){ return !!m; }).length);
+
+    var hist = computeMatchHistoryLookup();
+    var availableForSwap = pool.slice();
+
+    matches.forEach(function(g, i){
+      if(!g) return;
+      var head = el("div", { class:"court-head" }, [
+        el("span", { class:"court-num-wrap" }, [
+          el("span", { class:"court-num", text:"Match " + (i + 1) })
+        ]),
+        el("span", { class:"chip queue", text: i === 0 ? "Up next" : "On deck" })
+      ]);
+      var teamsWrap = el("div", { class:"teams-wrap" }, [
+        buildUpcomingTeamBlock(i, "Team 1", g.team1, 1, availableForSwap),
+        buildUpcomingTeamBlock(i, "Team 2", g.team2, 2, availableForSwap)
+      ]);
+
+      var hasOpenSeat = g.team1.concat(g.team2).some(function(id){ return !id; });
+      var autoBtn = el("button", { type:"button", class:"ghost", style:"align-self:flex-start;", text: hasOpenSeat ? "Auto-fill open seat" : "Auto-fill" });
+      autoBtn.addEventListener("click", function(){
+        // With an open seat, only that seat gets auto-filled — everyone
+        // else already placed on this card stays put. With no open seat,
+        // this hands the whole card back to the algorithm as before.
+        if(hasOpenSeat) autofillRequested[i] = true;
+        else delete upcomingOverrides[i];
+        changingUpcomingSlot = null;
+        render();
+      });
+
+      var bodyChildren = [ teamsWrap, autoBtn ];
+      var warning = matchRepeatWarning(g.team1, g.team2, hist);
+      if(warning){
+        bodyChildren.push(el("div", { class:"repeat-warning", text:"⚠ " + warning }));
+      }
+
+      var body = el("div", { class:"court-body" }, bodyChildren);
+      grid.appendChild(el("div", { class:"court preview" }, [ head, body ]));
+    });
+  }
+
+  function queueRow(p, position, isUpNext, mode){
+    var actions = el("div", { class:"row-actions" });
+    if(mode === "queue"){
+      var isPaired = !!p.partnerId && !!state.players[p.partnerId];
+      var pairBtn = el("button", {
+        class:"subtle icon" + (isPaired ? " paired" : ""),
+        type:"button", text:"⚭"
+      });
+      pairBtn.setAttribute("aria-label", isPaired ? "Unpair " + p.name : "Pair " + p.name + " with a partner");
+      pairBtn.addEventListener("click", function(){
+        if(isPaired){ unpairPlayer(p.id); }
+        else{ pairingPickerFor = (pairingPickerFor === p.id) ? null : p.id; render(); }
+      });
+      var restBtn = el("button", { class:"subtle icon", type:"button", text:"Rest" });
+      restBtn.addEventListener("click", function(){ sendToRest(p.id); });
+      actions.appendChild(pairBtn);
+      actions.appendChild(restBtn);
+    }else{
+      var backBtn = el("button", { class:"subtle icon", type:"button", text:"Back in" });
+      backBtn.addEventListener("click", function(){ rejoinFromRest(p.id); });
+      actions.appendChild(backBtn);
+    }
+
+    var maxed = mode === "queue" && isMaxedOut(p.id);
+    var rowChildren = [
+      el("span", { class:"pos", text: position != null ? String(position) : "·" }),
+      buildNameField(p, "queue-name"),
+      buildStarBadge(p)
+    ];
+    if(mode === "queue" && p.partnerId && state.players[p.partnerId]){
+      rowChildren.push(el("span", { class:"pair-tag", text:"⚭ " + state.players[p.partnerId].name }));
+    }
+    if(maxed){
+      rowChildren.push(el("span", { class:"max-tag", text:"Max games" }));
+    }
+    rowChildren.push(buildWaitField(p, mode));
+    rowChildren.push(actions);
+
+    var row = el("li", { class:"queue-row" + (isUpNext ? " up-next" : "") + (maxed ? " maxed" : "") }, rowChildren);
+    return row;
+  }
+
+  // Inline row shown under a player's row while they're picking a partner
+  // to lock in — lists every other queued player who isn't already paired.
+  function buildPairPickerRow(pid){
+    var candidates = state.queueOrder.filter(function(id){
+      return id !== pid && !state.players[id].partnerId;
+    });
+    var select = el("select", { class:"change-player-select" });
+    select.appendChild(el("option", { value:"", text:"Choose a partner…" }));
+    candidates.forEach(function(cid){
+      select.appendChild(el("option", { value:cid, text:state.players[cid].name }));
+    });
+    select.addEventListener("change", function(){
+      if(select.value) pairPlayers(pid, select.value);
+    });
+    var cancelBtn = el("button", { type:"button", class:"name-edit-btn", text:"✕" });
+    cancelBtn.setAttribute("aria-label", "Cancel pairing");
+    cancelBtn.addEventListener("click", function(){ pairingPickerFor = null; render(); });
+    return el("li", { class:"queue-row", style:"background:var(--surface-2);" }, [
+      el("span", { class:"pos" }),
+      el("span", { class:"hint", style:"flex-basis:auto;", text:"Pair with:" }),
+      select,
+      cancelBtn
+    ]);
+  }
+
+  function buildWaitField(p, mode){
+    var queuedAt = p.queuedAt || Date.now();
+    var waitedMs = Date.now() - queuedAt;
+    // only players actually waiting for a court get flagged — not those resting
+    var overdue = mode === "queue" && waitedMs >= WAIT_WARNING_MS;
+    var cls = "wait" + (mode === "queue" ? " wait-queue" : "") + (overdue ? " overdue" : "");
+    return el("span", { class:cls, "data-queued-at":String(queuedAt), text:fmtElapsed(waitedMs) });
+  }
+
+  function renderQueue(){
+    var list = document.getElementById("queueList");
+    var countEl = document.getElementById("queueCount");
+    list.innerHTML = "";
+    countEl.textContent = String(state.queueOrder.length);
+
+    if(!state.queueOrder.length){
+      list.appendChild(el("li", { class:"empty-panel", text:"No one waiting — add players above." }));
+      return;
+    }
+
+    var openCourts = state.courts.filter(function(c){ return c.players.length === 0; }).length;
+    var upNextCount = openCourts * state.playersPerCourt;
+
+    // Shown longest-waiting first (top) to most-recently-joined last
+    // (bottom) — a display order for the board, independent of the
+    // internal rotation order used to decide who actually gets pulled
+    // onto the next open court.
+    var sortedIds = state.queueOrder.slice().sort(function(a, b){
+      var qa = (state.players[a] && state.players[a].queuedAt) || 0;
+      var qb = (state.players[b] && state.players[b].queuedAt) || 0;
+      return qa - qb;
+    });
+
+    sortedIds.forEach(function(pid, i){
+      if(i === 0 && upNextCount > 0){
+        list.appendChild(el("li", { class:"up-next-label", text:"Up next" }));
+        if(state.avoidRepeats && state.queueOrder.length > state.playersPerCourt){
+          list.appendChild(el("li", { class:"hint", style:"padding:0 2px 2px;", text:"Court-mates may shuffle slightly to avoid a repeat matchup — a repeat opponent is only allowed when there's truly no one else nearby to swap in." }));
+        }
+      }
+      if(i === upNextCount && upNextCount > 0 && i < sortedIds.length){
+        list.appendChild(el("li", { class:"up-next-label", text:"Then waiting" }));
+      }
+      var p = state.players[pid];
+      list.appendChild(queueRow(p, i+1, i < upNextCount, "queue"));
+      if(pairingPickerFor === pid){
+        list.appendChild(buildPairPickerRow(pid));
+      }
+    });
+  }
+
+  function rosterRow(p){
+    var actions = el("div", { class:"row-actions" });
+    var checkInBtn = el("button", { type:"button", text:"Check in" });
+    checkInBtn.addEventListener("click", function(){ checkInFromRoster(p.id); });
+    actions.appendChild(checkInBtn);
+    return el("li", { class:"queue-row" }, [
+      buildNameField(p, "queue-name"),
+      buildStarBadge(p),
+      actions
+    ]);
+  }
+
+  function renderRoster(){
+    var panel = document.getElementById("rosterPanel");
+    var list = document.getElementById("rosterList");
+    var countEl = document.getElementById("rosterCount");
+    list.innerHTML = "";
+    if(!state.rosterOrder.length){
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    countEl.textContent = String(state.rosterOrder.length);
+    state.rosterOrder.forEach(function(pid){
+      list.appendChild(rosterRow(state.players[pid]));
+    });
+  }
+
+  function renderResting(){
+    var panel = document.getElementById("restingPanel");
+    var list = document.getElementById("restingList");
+    var countEl = document.getElementById("restingCount");
+    list.innerHTML = "";
+    if(!state.restingOrder.length){
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    countEl.textContent = String(state.restingOrder.length);
+    state.restingOrder.forEach(function(pid){
+      var p = state.players[pid];
+      list.appendChild(queueRow(p, null, false, "resting"));
+    });
+  }
+
+  function renderChrome(){
+    document.getElementById("sampleBanner").hidden = !state.seeded;
+    var venueInput = document.getElementById("venueInput");
+    if(document.activeElement !== venueInput) venueInput.value = state.venueName || "";
+    document.getElementById("courtCountInput").value = state.courtCount;
+    document.getElementById("formatSelect").value = String(state.playersPerCourt);
+    document.getElementById("avoidRepeatsToggle").checked = !!state.avoidRepeats;
+    document.getElementById("autoFillToggle").checked = !!state.autoFillEnabled;
+    document.getElementById("ratingMatchToggle").checked = !!state.ratingMatchEnabled;
+    var maxInput = document.getElementById("maxGamesInput");
+    if(document.activeElement !== maxInput){
+      maxInput.value = state.maxGamesPerPlayer ? String(state.maxGamesPerPlayer) : "";
+    }
+  }
+
+  function renderHistory(){
+    var list = document.getElementById("historyList");
+    var empty = document.getElementById("historyEmpty");
+    var countEl = document.getElementById("historyCount");
+    list.innerHTML = "";
+    countEl.textContent = String(state.matchHistory.length);
+    if(!state.matchHistory.length){
+      empty.hidden = false;
+      list.hidden = true;
+      return;
+    }
+    empty.hidden = true;
+    list.hidden = false;
+    state.matchHistory.forEach(function(m){
+      list.appendChild(buildHistoryRow(m));
+    });
+  }
+
+  function render(){
+    renderChrome();
+    renderStats();
+    cleanAllOverrides();
+    var leftoverQueue = renderCourts();
+    renderQueueCourts(leftoverQueue);
+    renderRoster();
+    renderQueue();
+    renderResting();
+    renderMiniLeaderboard();
+    renderHistory();
+    persist();
+  }
+
+  // ---------- leaderboard ----------
+
+  function rankedPlayers(){
+    var players = Object.keys(state.players).map(function(id){ return state.players[id]; });
+    players.sort(function(a, b){
+      var aw = a.wins || 0, bw = b.wins || 0;
+      if(bw !== aw) return bw - aw;
+      var ar = a.gamesPlayed ? aw / a.gamesPlayed : 0;
+      var br = b.gamesPlayed ? bw / b.gamesPlayed : 0;
+      if(br !== ar) return br - ar;
+      var ag = a.gamesPlayed || 0, bg = b.gamesPlayed || 0;
+      if(bg !== ag) return bg - ag;
+      return a.name.localeCompare(b.name);
+    });
+    return players;
+  }
+
+  function rankBadgeClass(rank){
+    return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+  }
+
+  function clickableName(p){
+    var span = el("div", { class:"name-text", text:p.name });
+    span.addEventListener("click", function(){ openPlayerHistory(p.id); });
+    return span;
+  }
+
+  function renderMiniLeaderboard(){
+    var list = document.getElementById("miniLbList");
+    var empty = document.getElementById("miniLbEmpty");
+    var countEl = document.getElementById("miniLbCount");
+    var players = rankedPlayers().filter(function(p){ return (p.gamesPlayed || 0) > 0; });
+    list.innerHTML = "";
+    countEl.textContent = String(players.length);
+
+    if(!players.length){
+      empty.hidden = false;
+      list.hidden = true;
+      return;
+    }
+    empty.hidden = true;
+    list.hidden = false;
+
+    players.slice(0, 5).forEach(function(p, i){
+      var rank = i + 1;
+      var nameEl = clickableName(p);
+      nameEl.classList.add("lb-mini-name");
+      list.appendChild(el("li", { class:"lb-mini-row" }, [
+        el("div", { class:"rank-badge" + (rankBadgeClass(rank) ? " " + rankBadgeClass(rank) : ""), text:String(rank) }),
+        nameEl,
+        el("span", { class:"num", text:(p.wins || 0) + "W" })
+      ]));
+    });
+  }
+
+  function openLeaderboard(){
+    var players = rankedPlayers();
+
+    var empty = document.getElementById("lbEmpty");
+    var table = document.getElementById("lbTable");
+    var body = document.getElementById("lbBody");
+    body.innerHTML = "";
+
+    if(!players.length){
+      empty.hidden = false;
+      table.hidden = true;
+    }else{
+      empty.hidden = true;
+      table.hidden = false;
+      players.forEach(function(p, i){
+        var rank = i + 1;
+        var winRate = p.gamesPlayed ? Math.round((p.wins || 0) / p.gamesPlayed * 100) : 0;
+        var avgWaitCell = el("div", { class:"num", text:avgWaitText(p.id) });
+        avgWaitCell.setAttribute("title", "Average time waited in queue before each seating, this session");
+        body.appendChild(el("div", { class:"lb-row" }, [
+          el("div", { class:"rank-badge" + (rankBadgeClass(rank) ? " " + rankBadgeClass(rank) : ""), text:String(rank) }),
+          clickableName(p),
+          el("div", { class:"num", text:String(p.wins || 0) }),
+          el("div", { class:"num", text:String(p.gamesPlayed || 0) }),
+          el("div", { class:"num", text:winRate + "%" }),
+          avgWaitCell
+        ]));
+      });
+    }
+
+    document.getElementById("lbVenue").textContent = state.venueName ? state.venueName : "Today's session";
+    document.getElementById("leaderboardOverlay").hidden = false;
+  }
+
+  function closeLeaderboard(){
+    document.getElementById("leaderboardOverlay").hidden = true;
+  }
+
+  // ---------- player history ----------
+
+  function findNameFromHistory(pid){
+    for(var i=0;i<state.matchHistory.length;i++){
+      var m = state.matchHistory[i];
+      var all = m.team1.concat(m.team2);
+      for(var j=0;j<all.length;j++){
+        if(all[j].id === pid) return all[j].name;
+      }
+    }
+    return null;
+  }
+
+  function buildTeamNameSpans(team){
+    var parts = [];
+    team.forEach(function(pl, i){
+      if(i > 0) parts.push(document.createTextNode(" & "));
+      var span = el("span", { class:"name-text", text:pl.name });
+      span.addEventListener("click", function(){ openPlayerHistory(pl.id); });
+      parts.push(span);
+    });
+    return parts;
+  }
+
+  // A fixed "how long did this match actually take" duration — captured
+  // once when the game ended (see finalizeEndGame) — rather than a
+  // ticking "X ago" that keeps counting up forever after. Older saved
+  // matches from before this was tracked won't have it, so those fall
+  // back to a dash instead of a wrong or missing number.
+  function matchDurationText(m){
+    return (typeof m.durationMs === "number") ? fmtElapsed(m.durationMs) : "—";
+  }
+
+  function buildHistoryRow(m){
+    var team1El = el("span", { class:"history-team" + (m.winner === 1 ? " won" : "") },
+      [ m.winner === 1 ? el("span", { class:"win-pill", text:"W" }) : null ].concat(buildTeamNameSpans(m.team1)));
+    var team2El = el("span", { class:"history-team" + (m.winner === 2 ? " won" : "") },
+      [ m.winner === 2 ? el("span", { class:"win-pill", text:"W" }) : null ].concat(buildTeamNameSpans(m.team2)));
+
+    var swapBtn = el("button", { class:"ghost icon", type:"button", text:"Swap winner" });
+    swapBtn.addEventListener("click", function(){ swapMatchWinner(m.id); });
+
+    var timeEl = el("span", { class:"history-time", text:matchDurationText(m) });
+    timeEl.setAttribute("title", "Match length");
+
+    return el("li", { class:"history-row" }, [
+      el("span", { class:"history-court", text:m.courtLabel }),
+      el("span", { class:"history-teams" }, [ team1El, el("span", { class:"history-vs", text:"vs" }), team2El ]),
+      timeEl,
+      swapBtn
+    ]);
+  }
+
+  // Same as buildTeamNameSpans, but for the player-history popup: each
+  // name gets a small "prtnr:N" or "opp:N" tag alongside it, showing how
+  // many times referencePid has been seated WITH (pairHistory) or
+  // AGAINST (opponentHistory) that specific person across the whole
+  // session — so it's easy to spot who you keep getting paired or
+  // matched up against, at a glance, right on the row it happened.
+  function buildPlayerHistoryNameSpans(team, referencePid, historyMap, tagLabel){
+    var parts = [];
+    team.forEach(function(pl, i){
+      if(i > 0) parts.push(document.createTextNode(" & "));
+      var span = el("span", { class:"name-text", text:pl.name });
+      span.addEventListener("click", function(){ openPlayerHistory(pl.id); });
+      parts.push(span);
+      var count = historyMap[pairKey(referencePid, pl.id)] || 0;
+      if(count > 0){
+        var tag = el("span", { class:"matchup-count", text: tagLabel + ":" + count });
+        tag.setAttribute("title", (tagLabel === "prtnr" ? "Played together " : "Played against each other ") + count + " time" + (count === 1 ? "" : "s") + " this session");
+        parts.push(tag);
+      }
+    });
+    return parts;
+  }
+
+  function buildPlayerHistoryRow(m, pid){
+    var onTeam = m.team1.some(function(pl){ return pl.id === pid; }) ? 1 : 2;
+    var mine = onTeam === 1 ? m.team1 : m.team2;
+    var theirs = onTeam === 1 ? m.team2 : m.team1;
+    var teammates = mine.filter(function(pl){ return pl.id !== pid; });
+    var won = m.winner === onTeam;
+
+    var descParts = [];
+    if(teammates.length){
+      descParts.push(el("span", { class:"history-vs", text:"with" }));
+      descParts = descParts.concat(buildPlayerHistoryNameSpans(teammates, pid, state.pairHistory, "prtnr"));
+    }
+    descParts.push(el("span", { class:"history-vs", text:"vs" }));
+    descParts = descParts.concat(buildPlayerHistoryNameSpans(theirs, pid, state.opponentHistory, "opp"));
+
+    var timeEl = el("span", { class:"history-time", text:matchDurationText(m) });
+    timeEl.setAttribute("title", "Match length");
+
+    return el("li", { class:"history-row" }, [
+      el("span", { class:"history-court", text:m.courtLabel }),
+      el("span", { class:"history-teams" }, descParts),
+      el("span", { class:won ? "win-pill" : "loss-pill", text:won ? "Won" : "Lost" }),
+      timeEl
+    ]);
+  }
+
+  // Builds the 5 clickable stars in the player-history popup's rating
+  // row, filled up through the current rating. Clicking a star sets the
+  // rating to that many stars; clicking the star that's already the
+  // current rating clears it back to unrated.
+  function renderPhRatingStars(rating){
+    var container = document.getElementById("phRatingStars");
+    container.innerHTML = "";
+    for(var i=1;i<=5;i++){
+      var filled = i <= rating;
+      var btn = el("button", { type:"button", class: filled ? "filled" : "", text: filled ? "★" : "☆" });
+      btn.setAttribute("aria-label", i + " star" + (i === 1 ? "" : "s"));
+      (function(val){
+        btn.addEventListener("click", function(){ setPlayerRating(currentHistoryPlayerId, val); });
+      })(i);
+      container.appendChild(btn);
+    }
+  }
+
+  function setPlayerRating(pid, value){
+    var p = state.players[pid];
+    if(!p) return;
+    p.rating = (p.rating === value) ? 0 : value;
+    renderPhRatingStars(p.rating);
+    render();
+  }
+
+  function openPlayerHistory(pid){
+    var p = state.players[pid];
+    var name = p ? p.name : (findNameFromHistory(pid) || "Unknown player");
+    var matches = state.matchHistory.filter(function(m){
+      return m.team1.some(function(pl){ return pl.id === pid; }) || m.team2.some(function(pl){ return pl.id === pid; });
+    });
+
+    currentHistoryPlayerId = pid;
+    var genderRow = document.getElementById("phGenderRow");
+    var genderSelect = document.getElementById("phGenderSelect");
+    if(p){
+      genderRow.hidden = false;
+      genderSelect.value = p.gender || "";
+    }else{
+      genderRow.hidden = true;
+    }
+
+    var ratingRow = document.getElementById("phRatingRow");
+    if(p){
+      ratingRow.hidden = false;
+      renderPhRatingStars(p.rating || 0);
+    }else{
+      ratingRow.hidden = true;
+    }
+
+    document.getElementById("phName").textContent = name;
+    var recordEl = document.getElementById("phRecord");
+    if(p){
+      var wins = p.wins || 0, games = p.gamesPlayed || 0;
+      var losses = Math.max(0, games - wins);
+      var rate = games ? Math.round(wins / games * 100) : 0;
+      var avgWait = avgWaitMsOf(pid);
+      recordEl.textContent = wins + "-" + losses + " · " + rate + "% win rate" +
+        (avgWait !== null ? " · avg wait " + fmtElapsed(avgWait) : "");
+    }else{
+      recordEl.textContent = matches.length + " match" + (matches.length === 1 ? "" : "es") + " on record";
+    }
+
+    var list = document.getElementById("phList");
+    var empty = document.getElementById("phEmpty");
+    list.innerHTML = "";
+    if(!matches.length){
+      empty.hidden = false;
+      list.hidden = true;
+    }else{
+      empty.hidden = true;
+      list.hidden = false;
+      matches.forEach(function(m){
+        list.appendChild(buildPlayerHistoryRow(m, pid));
+      });
+    }
+
+    document.getElementById("playerHistoryOverlay").hidden = false;
+  }
+
+  function closePlayerHistory(){
+    currentHistoryPlayerId = null;
+    document.getElementById("playerHistoryOverlay").hidden = true;
+  }
+
+  // ---------- generic "are you sure?" confirm (no native browser dialogs) ----------
+
+  var pendingGlobalConfirm = null; // function to run if the user confirms (transient UI state)
+
+  function openConfirm(message, onConfirm, yesLabel){
+    document.getElementById("confirmMessage").textContent = message;
+    document.getElementById("confirmYesBtn").textContent = yesLabel || "Yes";
+    pendingGlobalConfirm = onConfirm;
+    document.getElementById("confirmOverlay").hidden = false;
+  }
+
+  function closeConfirm(){
+    pendingGlobalConfirm = null;
+    document.getElementById("confirmOverlay").hidden = true;
+  }
+
+  function tick(){
+    // Update the clock first and unconditionally, so it never gets stuck
+    // even if something below throws.
+    var now = new Date();
+    var clockTimeEl = document.getElementById("clockTime");
+    var clockDateEl = document.getElementById("clockDate");
+    if(clockTimeEl) clockTimeEl.textContent = now.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+    if(clockDateEl) clockDateEl.textContent = now.toLocaleDateString([], { weekday:"long", month:"long", day:"numeric" });
+
+    try{
+      document.querySelectorAll("[data-started-at]").forEach(function(elm){
+        elm.textContent = fmtElapsed(Date.now() - Number(elm.getAttribute("data-started-at")));
+      });
+      document.querySelectorAll("[data-queued-at]").forEach(function(elm){
+        var waitedMs = Date.now() - Number(elm.getAttribute("data-queued-at"));
+        elm.textContent = fmtElapsed(waitedMs);
+        if(elm.classList.contains("wait-queue")){
+          elm.classList.toggle("overdue", waitedMs >= WAIT_WARNING_MS);
+        }
+      });
+    }catch(err){
+      console.error("Timer tick failed:", err);
+    }
+  }
+
+  // ---------- wiring ----------
+
+  document.getElementById("addForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var input = document.getElementById("addInput");
+    addPlayersFromText(input.value);
+    input.value = "";
+    input.focus();
+  });
+
+  document.getElementById("venueInput").addEventListener("input", function(e){
+    state.venueName = e.target.value;
+    persist();
+  });
+
+  document.getElementById("settingsToggle").addEventListener("click", function(){
+    var panel = document.getElementById("settingsPanel");
+    panel.hidden = !panel.hidden;
+    document.getElementById("importPanel").hidden = true;
+    document.getElementById("backupPanel").hidden = true;
+  });
+
+  document.getElementById("importToggle").addEventListener("click", function(){
+    var panel = document.getElementById("importPanel");
+    panel.hidden = !panel.hidden;
+    document.getElementById("settingsPanel").hidden = true;
+    document.getElementById("backupPanel").hidden = true;
+    if(!panel.hidden) renderImportPreview();
+  });
+
+  document.getElementById("backupToggle").addEventListener("click", function(){
+    var panel = document.getElementById("backupPanel");
+    panel.hidden = !panel.hidden;
+    document.getElementById("settingsPanel").hidden = true;
+    document.getElementById("importPanel").hidden = true;
+    showBackupStatus("");
+  });
+
+  document.getElementById("downloadBackupBtn").addEventListener("click", downloadBackup);
+
+  document.getElementById("restoreBackupFile").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(file) handleRestoreFile(file);
+  });
+
+  document.getElementById("importText").addEventListener("input", renderImportPreview);
+
+  document.getElementById("importFile").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      document.getElementById("importText").value = String(reader.result || "");
+      renderImportPreview();
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById("importAddBtn").addEventListener("click", function(){
+    var checked = Array.prototype.slice.call(document.querySelectorAll("#importPreview input[type=checkbox]:checked"));
+    var names = checked.map(function(cb){ return cb.dataset.name; }).filter(Boolean);
+    addPlayersFromNamesToRoster(names);
+    document.getElementById("importText").value = "";
+    document.getElementById("importFile").value = "";
+    document.getElementById("importPanel").hidden = true;
+    renderImportPreview();
+  });
+
+  document.getElementById("importCancelBtn").addEventListener("click", function(){
+    document.getElementById("importText").value = "";
+    document.getElementById("importFile").value = "";
+    document.getElementById("importPanel").hidden = true;
+    renderImportPreview();
+  });
+
+  document.getElementById("courtCountInput").addEventListener("change", function(e){
+    var n = Math.max(1, Math.min(8, Math.round(Number(e.target.value)) || 1));
+    state.courtCount = n;
+    pendingConfirm = {};
+    changingCourtSlot = null;
+    ensureCourtArrayLength();
+    autofillCourts();
+    render();
+  });
+
+  document.getElementById("formatSelect").addEventListener("change", function(e){
+    state.playersPerCourt = Number(e.target.value);
+    pendingConfirm = {};
+    changingCourtSlot = null;
+    render();
+  });
+
+  document.getElementById("avoidRepeatsToggle").addEventListener("change", function(e){
+    state.avoidRepeats = !!e.target.checked;
+    persist();
+  });
+
+  document.getElementById("autoFillToggle").addEventListener("change", function(e){
+    state.autoFillEnabled = !!e.target.checked;
+    if(state.autoFillEnabled) autofillCourts();
+    render();
+  });
+
+  document.getElementById("ratingMatchToggle").addEventListener("change", function(e){
+    state.ratingMatchEnabled = !!e.target.checked;
+    pendingConfirm = {};
+    changingCourtSlot = null;
+    autofillCourts();
+    render();
+  });
+
+  document.getElementById("maxGamesInput").addEventListener("change", function(e){
+    var n = Math.max(0, Math.round(Number(e.target.value)) || 0);
+    state.maxGamesPerPlayer = n;
+    autofillCourts();
+    render();
+  });
+
+  document.getElementById("phGenderSelect").addEventListener("change", function(e){
+    if(!currentHistoryPlayerId) return;
+    var p = state.players[currentHistoryPlayerId];
+    if(!p) return;
+    p.gender = e.target.value;
+    persist();
+  });
+
+  document.getElementById("startSessionBtn").addEventListener("click", function(){
+    openConfirm("Start a new session? This clears the current board, queue, and match history.", startNewSession, "Start new session");
+  });
+
+  document.getElementById("endSessionBtn").addEventListener("click", function(){
+    openConfirm("End this session and view the final leaderboard?", openLeaderboard, "End session");
+  });
+  document.getElementById("viewFullLbBtn").addEventListener("click", openLeaderboard);
+  document.getElementById("lbCloseX").addEventListener("click", closeLeaderboard);
+  document.getElementById("lbBackBtn").addEventListener("click", closeLeaderboard);
+  document.getElementById("lbNewSessionBtn").addEventListener("click", function(){
+    openConfirm("Start a new session? This clears the current board, queue, and match history.", function(){
+      startNewSession();
+      closeLeaderboard();
+    }, "Start new session");
+  });
+  document.getElementById("leaderboardOverlay").addEventListener("click", function(e){
+    if(e.target.id === "leaderboardOverlay") closeLeaderboard();
+  });
+
+  document.getElementById("confirmCancelBtn").addEventListener("click", closeConfirm);
+  document.getElementById("confirmYesBtn").addEventListener("click", function(){
+    var action = pendingGlobalConfirm;
+    closeConfirm();
+    if(action) action();
+  });
+  document.getElementById("confirmOverlay").addEventListener("click", function(e){
+    if(e.target.id === "confirmOverlay") closeConfirm();
+  });
+
+  document.getElementById("phCloseX").addEventListener("click", closePlayerHistory);
+  document.getElementById("phBackBtn").addEventListener("click", closePlayerHistory);
+  document.getElementById("playerHistoryOverlay").addEventListener("click", function(e){
+    if(e.target.id === "playerHistoryOverlay") closePlayerHistory();
+  });
+
+  document.addEventListener("keydown", function(e){
+    if(e.key !== "Escape") return;
+    if(!document.getElementById("confirmOverlay").hidden) closeConfirm();
+    else if(!document.getElementById("playerHistoryOverlay").hidden) closePlayerHistory();
+    else if(!document.getElementById("leaderboardOverlay").hidden) closeLeaderboard();
+  });
+
+  // ---------- boot ----------
+
+  // Probes whether localStorage actually works in this browser right now
+  // (it can silently no-op in some private-browsing modes, or throw when
+  // site data is blocked) so the header's save indicator is accurate from
+  // the very first paint, not just after the first change is made.
+  function checkStorageWorking(){
+    try{
+      var testKey = STORAGE_KEY + "__probe";
+      window.localStorage.setItem(testKey, "1");
+      window.localStorage.removeItem(testKey);
+      storageWorking = true;
+    }catch(e){
+      storageWorking = false;
+    }
+    updateSaveStatus();
+  }
+
+  function start(data){
+    if(data && data.players && data.courts){
+      state = normalizeState(data);
+    }else{
+      state = normalizeState(loadFromStorage() || seedState());
+    }
+    ensureCourtArrayLength();
+    // Fill any open courts right away if auto-select is on — otherwise a
+    // fresh load or a page refresh leaves courts sitting open (with the
+    // toggle already showing "on") until something else happens to
+    // trigger it, which reads as "auto-select isn't working."
+    try{ autofillCourts(); }catch(err){ console.error("Initial autofill failed:", err); }
+    checkStorageWorking();
+    try{ render(); }catch(err){ console.error("Initial render failed:", err); }
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  if(window.claude && window.claude.hot && window.claude.hot.snapshot){
+    window.claude.hot.snapshot(function(){ return state; });
+  }
+  if(window.claude && window.claude.hot && window.claude.hot.ready){
+    window.claude.hot.ready(start);
+  }else{
+    start(window.claude && window.claude.hot ? window.claude.hot.data : null);
+  }
+})();
+</script>
+
+</body>
+</html>
