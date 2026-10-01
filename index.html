@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Open Play Rotation</title>
 <style>[hidden]{display:none!important}</style>
 </head>
 <body>
 
+<title>Open Play Rotation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -192,6 +192,14 @@
   .court.open{ border-style:dashed; box-shadow:none; }
   .court.preview{ border-style:dotted; box-shadow:none; opacity:0.9; }
   .court.preview .court-num{ font-size:20px; }
+  .add-court-tile{
+    border:2px dashed var(--line); background:transparent; box-shadow:none; cursor:pointer;
+    align-items:center; justify-content:center; flex-direction:row; gap:8px;
+    min-height:140px; padding:20px; color:var(--ink-muted);
+    font-family:var(--font-body); font-weight:600; font-size:14px;
+  }
+  .add-court-tile:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); filter:none; }
+  .add-court-tile .plus-icon{ font-family:var(--font-display); font-size:30px; line-height:1; }
   .court-head{
     display:flex; align-items:baseline; justify-content:space-between; gap:8px;
     padding:10px 14px 6px;
@@ -219,7 +227,7 @@
   .timer{ font-family:var(--font-mono); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--ink-muted); }
 
   .court-body{ padding:6px 14px 14px; flex:1; display:flex; flex-direction:column; gap:10px; }
-  .players-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .players-grid{ display:grid; grid-template-columns:1fr; gap:8px; }
   .players-grid.singles{ grid-template-columns:1fr; }
   .player-chip{
     display:flex; align-items:center; gap:8px; background:var(--surface-2);
@@ -268,8 +276,9 @@
   .qp-vs{ color:var(--ink-muted); font-size:10.5px; flex-shrink:0; }
   .court-actions{ display:flex; gap:8px; justify-content:flex-end; padding-top:2px; }
 
-  .teams-wrap{ display:flex; flex-direction:column; gap:8px; }
+  .teams-wrap{ display:flex; flex-direction:row; align-items:stretch; gap:10px; }
   .team-block{
+    flex:1; min-width:0;
     display:flex; flex-direction:column; gap:5px;
     border-left:3px solid transparent; padding-left:8px; border-radius:4px;
   }
@@ -398,6 +407,22 @@
     .clockblock{ align-items:flex-start; }
     header.top{ flex-direction:column; }
   }
+
+  /* Team columns sit side by side (teams-wrap is a row) at every width —
+     this just tightens their padding/spacing/type size on a narrow phone
+     so a player-chip's name, icons, and swap/remove buttons all still fit
+     comfortably in a half-width column. */
+  @media (max-width:480px){
+    .teams-wrap{ gap:6px; }
+    .team-block{ padding-left:6px; gap:4px; }
+    .team-label{ font-size:9px; }
+    .player-chip{ padding:5px 6px; gap:5px; }
+    .player-name{ font-size:12.5px; gap:3px; }
+    .name-edit-btn{ padding:2px 4px; font-size:10px; }
+    .lock-icon, .star-rating{ font-size:9.5px; }
+    .court-num{ font-size:28px; }
+    .stat{ min-width:92px; padding:7px 10px; }
+  }
 </style>
 
 <div class="wrap">
@@ -492,7 +517,7 @@
       <input id="ratingMatchToggle" type="checkbox" style="width:auto;" />
       Only match players with the same rating
     </label>
-    <span class="hint" style="flex-basis:auto;max-width:260px;">Reducing courts sends players on a removed court back to the front of the queue. Turn off auto-select to fill each open court yourself. Ending a game always leaves that court open on an editable preview first — swap or remove anyone before hitting "Auto-select players" to start it — auto-select just covers courts that are open for other reasons. With same-rating matching on, set a player's rating from their match-history popup (click their name) — unrated players (no stars) only match with other unrated players. If there still aren't enough at the exact rating, a one-star-lower player who's winning more than average, or a one-star-higher player who's winning less than average, can bridge in to keep the queue moving.</span>
+    <span class="hint" style="flex-basis:auto;max-width:260px;">Reducing courts here trims from the end — to remove a specific court instead (or add one), use the "+ Add court" tile or a court's own ✕ on the board. Either way, anyone currently on a removed court goes back to the front of the queue. Turn off auto-select to fill each open court yourself. Ending a game always leaves that court open on an editable preview first — swap or remove anyone before hitting "Auto-select players" to start it — auto-select just covers courts that are open for other reasons. With same-rating matching on, set a player's rating from their match-history popup (click their name) — unrated players (no stars) only match with other unrated players. If there still aren't enough at the exact rating, a one-star-lower player who's winning more than average, or a one-star-higher player who's winning less than average, can bridge in to keep the queue moving.</span>
   </div>
 
   <div class="board">
@@ -990,11 +1015,78 @@
       // their actual wait time earns them, same as everyone else.
       for(var i = removed.players.length - 1; i >= 0; i--){
         var pid = removed.players[i];
+        if(!pid) continue; // an open seat (see removeCourtPlayer) — nobody to displace
         state.players[pid].status = "queue";
         state.queueOrder.push(pid);
       }
     }
     sortQueueByWaitTime();
+  }
+
+  // Appends one empty, open court to the end of the board — same end
+  // result as turning the "Courts" number up by one in Courts & format,
+  // just reachable right from the board itself ("+ Add court" tile).
+  function addCourt(){
+    if(state.courts.length >= 8) return; // matches the Courts & format input's own cap
+    state.courts.push({ players: [], startedAt: null, label: null });
+    state.courtCount = state.courts.length;
+    render();
+  }
+
+  // Removes one specific court — unlike turning the "Courts" number down
+  // in Courts & format (which always trims off the end), this can drop
+  // any court on the board. Anyone currently seated on it goes back into
+  // the Waiting Queue, keeping their original wait clock rather than
+  // restarting at 0:00 — same treatment as shrinking the court count, and
+  // they didn't get to finish either way. Always leaves at least one
+  // court on the board.
+  function removeCourt(courtIndex){
+    if(state.courts.length <= 1) return;
+    var removed = state.courts[courtIndex];
+    if(!removed) return;
+    for(var i = removed.players.length - 1; i >= 0; i--){
+      var pid = removed.players[i];
+      if(!pid) continue; // an open seat (see removeCourtPlayer) — nobody to displace
+      state.players[pid].status = "queue";
+      if(!state.players[pid].queuedAt) state.players[pid].queuedAt = Date.now();
+      state.queueOrder.push(pid);
+    }
+    state.courts.splice(courtIndex, 1);
+    state.courtCount = state.courts.length;
+    sortQueueByWaitTime();
+
+    // Every court from this index on has just shifted down one slot —
+    // rather than re-mapping each piece of per-court transient UI state,
+    // just clear it all. Losing a mid-edit on some other court is a small,
+    // safe trade next to silently pointing stale state at the wrong court.
+    pendingConfirm = {};
+    changingCourtSlot = null;
+    courtNotices = {};
+    editingCourtLabelIndex = null;
+    courtPreviewOverrides = {};
+    changingCourtPreviewSlot = null;
+    lastCourtPreviews = {};
+    courtAutofillRequested = {};
+
+    render();
+  }
+
+  // Removing an empty court needs no confirmation; removing one that's
+  // mid-game does, since it bumps real players off a live match (and that
+  // match is dropped — it never reaches Match History).
+  function requestRemoveCourt(courtIndex){
+    var court = state.courts[courtIndex];
+    if(!court) return;
+    var hasPlayers = court.players.some(function(pid){ return !!pid; });
+    var label = court.label || ("Court " + (courtIndex + 1));
+    var message = hasPlayers
+      ? "Remove " + label + "? It's currently in play — the players on it will be sent back to the Waiting Queue, and this game won't be saved to Match History."
+      : "Remove " + label + "? This can't be undone.";
+    openConfirm(
+      message,
+      function(){ removeCourt(courtIndex); },
+      "Remove court"
+    );
   }
 
   function pairKey(a, b){ return a < b ? a + "|" + b : b + "|" + a; }
@@ -1435,17 +1527,27 @@
   // already-duplicated player — so every render starts from a valid set
   // before anything reads them.
   function cleanAllOverrides(){
+    var maxCards = state.courts.length;
     state.courts.forEach(function(court, idx){
       var norm = normalizeUpcomingOverride(courtPreviewOverrides[idx]);
       if(norm) courtPreviewOverrides[idx] = norm;
       else delete courtPreviewOverrides[idx];
     });
-    var maxCards = 5;
     for(var k=0;k<maxCards;k++){
       var normU = normalizeUpcomingOverride(upcomingOverrides[k]);
       if(normU) upcomingOverrides[k] = normU;
       else delete upcomingOverrides[k];
     }
+    // Drop anything stashed at an index beyond the current court count —
+    // e.g. leftover from before the court count was turned down — so a
+    // reduced court count can't go on reserving players nothing shows
+    // anymore (see reservedFromOverrides, which reads every key here).
+    Object.keys(courtPreviewOverrides).forEach(function(k){
+      if(Number(k) >= maxCards) delete courtPreviewOverrides[k];
+    });
+    Object.keys(upcomingOverrides).forEach(function(k){
+      if(Number(k) >= maxCards) delete upcomingOverrides[k];
+    });
   }
 
   // Every player id currently pinned by hand anywhere — an open court's
@@ -1739,6 +1841,9 @@
   function finalizeEndGame(courtIndex, winnerTeam){
     var court = state.courts[courtIndex];
     if(!court.players.length) return;
+    // Guard only — the UI disables ending a game while any seat is open
+    // (see renderCourts / removeCourtPlayer), so this shouldn't fire.
+    if(court.players.some(function(pid){ return !pid; })) return;
     var teams = teamsForCourt(court);
     var winnerIds = winnerTeam === 1 ? teams.team1 : teams.team2;
 
@@ -1920,14 +2025,16 @@
     return el("span", { class:wrapperClass }, [ nameText, editBtn ]);
   }
 
-  // On-court player chips are view + "change player" only — renaming
-  // happens from the Waiting Queue instead, so a mis-seated or substitute
-  // player never needs a name edit here.
-  function buildCourtPlayerChip(pid, courtIndex){
-    var p = state.players[pid];
-    if(!p) return null;
+  // On-court player chips are view + "change player" + "remove" only —
+  // renaming happens from the Waiting Queue instead, so a mis-seated or
+  // substitute player never needs a name edit here. A removed seat stays
+  // open (court.players keeps its length, that slot just goes null) —
+  // see removeCourtPlayer / fillCourtOpenSlot — so team sizes and slot
+  // positions never shift around underneath the rest of the court.
+  function buildCourtPlayerChip(pid, courtIndex, slotIndex){
+    var editing = changingCourtSlot && changingCourtSlot.courtIndex === courtIndex && changingCourtSlot.slotIndex === slotIndex;
 
-    if(changingCourtSlot && changingCourtSlot.courtIndex === courtIndex && changingCourtSlot.pid === pid){
+    if(editing){
       var select = el("select", { class:"change-player-select" });
       select.appendChild(el("option", { value:"", text:"Choose replacement…" }));
       if(state.queueOrder.length){
@@ -1947,7 +2054,9 @@
         select.appendChild(rGroup);
       }
       select.addEventListener("change", function(){
-        if(select.value) performPlayerChange(courtIndex, pid, select.value);
+        if(!select.value) return;
+        if(pid) performPlayerChange(courtIndex, pid, select.value);
+        else fillCourtOpenSlot(courtIndex, slotIndex, select.value);
       });
       var cancelBtn = el("button", { type:"button", class:"name-edit-btn", text:"✕" });
       cancelBtn.setAttribute("aria-label", "Cancel changing player");
@@ -1957,16 +2066,42 @@
       ]);
     }
 
+    if(!pid){
+      // An open seat — someone was removed mid-game and hasn't been
+      // replaced yet. "Team X Wins" is disabled while this is showing
+      // (see renderCourts) until it's filled back in or someone's
+      // swapped into it.
+      var pickBtn = el("button", { type:"button", class:"name-edit-btn", text:"+ Choose" });
+      pickBtn.setAttribute("aria-label", "Choose a replacement for this open seat");
+      pickBtn.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        changingCourtSlot = { courtIndex:courtIndex, slotIndex:slotIndex };
+        render();
+      });
+      return el("div", { class:"player-chip open-seat" }, [
+        el("span", { class:"player-name" }, [
+          el("span", { class:"name-text", style:"color:var(--ink-muted);font-style:italic;", text:"Open seat" }),
+          pickBtn
+        ])
+      ]);
+    }
+
+    var p = state.players[pid];
+    if(!p) return null;
     var nameText = el("span", { class:"name-text", text:p.name });
     nameText.setAttribute("title", "View " + p.name + "'s match history");
     nameText.addEventListener("click", function(){ openPlayerHistory(p.id); });
     var changeBtn = el("button", { type:"button", class:"name-edit-btn", text:"⇄" });
     changeBtn.setAttribute("aria-label", "Change player for " + p.name);
-    changeBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingCourtSlot = { courtIndex: courtIndex, pid: pid }; render(); });
+    changeBtn.addEventListener("click", function(ev){ ev.stopPropagation(); changingCourtSlot = { courtIndex: courtIndex, slotIndex: slotIndex }; render(); });
+    var removeBtn = el("button", { type:"button", class:"name-edit-btn remove-slot-btn", text:"✕" });
+    removeBtn.setAttribute("title", "Remove " + p.name + " from this game — sends them back to the queue and leaves the seat open");
+    removeBtn.setAttribute("aria-label", "Remove " + p.name + " from this court");
+    removeBtn.addEventListener("click", function(ev){ ev.stopPropagation(); removeCourtPlayer(courtIndex, pid); });
     var lockIcon = buildLockIcon(p);
     var starBadge = buildStarBadge(p);
     return el("div", { class:"player-chip" }, [
-      el("span", { class:"player-name" }, [ lockIcon, nameText, starBadge, changeBtn ])
+      el("span", { class:"player-name" }, [ lockIcon, nameText, starBadge, changeBtn, removeBtn ])
     ]);
   }
 
@@ -1994,10 +2129,10 @@
     return badge;
   }
 
-  function buildTeamBlock(label, ids, courtIndex, teamNum){
+  function buildTeamBlock(label, ids, courtIndex, teamNum, slotOffset){
     var teamGrid = el("div", { class:"players-grid" + (ids.length === 1 ? " singles" : "") });
-    ids.forEach(function(pid){
-      var chip = buildCourtPlayerChip(pid, courtIndex);
+    ids.forEach(function(pid, i){
+      var chip = buildCourtPlayerChip(pid, courtIndex, slotOffset + i);
       if(chip) teamGrid.appendChild(chip);
     });
     return el("div", { class:"team-block", "data-team":String(teamNum) }, [
@@ -2042,6 +2177,65 @@
     // a court without the other breaks the "always play together" rule,
     // so it needs a visible heads-up rather than failing silently.
     var newPlayer = state.players[newPid];
+    if(newPlayer && newPlayer.partnerId && state.players[newPlayer.partnerId] && court.players.indexOf(newPlayer.partnerId) === -1){
+      courtNotices[courtIndex] = newPlayer.name + " is locked in with " + state.players[newPlayer.partnerId].name + ", who isn't on this court.";
+    }else{
+      delete courtNotices[courtIndex];
+    }
+
+    changingCourtSlot = null;
+    render();
+  }
+
+  // Removes a player from a live court mid-game — sends them to "Taking a
+  // Break" (not back into the Waiting Queue) and leaves that seat open
+  // (shown as "Open seat", see buildCourtPlayerChip) rather than shrinking
+  // the court's player list, so the other players' slots and team
+  // assignments never shift. Resting on purpose, not queued: pickNextGroup
+  // only ever draws from state.queueOrder, so someone pulled off a court
+  // this way is never auto-picked into an open court's preview or an
+  // Upcoming Match — they stay out of the rotation until "Back in" (in the
+  // Taking a Break panel) sends them back to the queue, or they're picked
+  // by hand from the "Resting" group in any swap/"+ Choose" dropdown.
+  // "Team X Wins" is disabled (see renderCourts) until the seat's filled.
+  function removeCourtPlayer(courtIndex, pid){
+    var court = state.courts[courtIndex];
+    if(!court) return;
+    var slotIdx = court.players.indexOf(pid);
+    if(slotIdx === -1) return;
+
+    court.players[slotIdx] = null;
+
+    var p = state.players[pid];
+    if(p){
+      p.status = "resting";
+      if(state.restingOrder.indexOf(pid) === -1) state.restingOrder.push(pid);
+    }
+
+    // An armed "Team X wins?" confirm no longer makes sense once the
+    // lineup it names has a seat missing from it.
+    delete pendingConfirm[courtIndex];
+    delete courtNotices[courtIndex];
+    if(changingCourtSlot && changingCourtSlot.courtIndex === courtIndex) changingCourtSlot = null;
+    render();
+  }
+
+  // Fills a seat on a live court that was left open by removeCourtPlayer —
+  // same bookkeeping as performPlayerChange, just with no outgoing player
+  // to send back to the queue.
+  function fillCourtOpenSlot(courtIndex, slotIndex, newId){
+    if(!newId) return;
+    var court = state.courts[courtIndex];
+    if(!court){ changingCourtSlot = null; render(); return; }
+
+    state.queueOrder = state.queueOrder.filter(function(id){ return id !== newId; });
+    state.restingOrder = state.restingOrder.filter(function(id){ return id !== newId; });
+
+    court.players[slotIndex] = newId;
+    recordPlayerWait(newId);
+    state.players[newId].status = "court";
+
+    var newPlayer = state.players[newId];
     if(newPlayer && newPlayer.partnerId && state.players[newPlayer.partnerId] && court.players.indexOf(newPlayer.partnerId) === -1){
       courtNotices[courtIndex] = newPlayer.name + " is locked in with " + state.players[newPlayer.partnerId].name + ", who isn't on this court.";
     }else{
@@ -2122,11 +2316,23 @@
 
     state.courts.forEach(function(court, idx){
       var isOpen = court.players.length === 0;
-      var head = el("div", { class:"court-head" }, [
-        buildCourtLabelField(idx),
+      var headRight = el("div", { style:"display:flex;align-items:center;gap:4px;" }, [
         isOpen
           ? el("span", { class:"chip open", text:"Open" })
           : el("span", { class:"chip live", text:"In play" })
+      ]);
+      if(state.courts.length > 1){
+        var removeCourtBtn = el("button", { type:"button", class:"name-edit-btn remove-slot-btn", text:"✕" });
+        var displayLabel = court.label || ("Court " + (idx + 1));
+        removeCourtBtn.setAttribute("title", "Remove " + displayLabel);
+        removeCourtBtn.setAttribute("aria-label", "Remove " + displayLabel);
+        var courtIdxForRemove = idx;
+        removeCourtBtn.addEventListener("click", function(ev){ ev.stopPropagation(); requestRemoveCourt(courtIdxForRemove); });
+        headRight.appendChild(removeCourtBtn);
+      }
+      var head = el("div", { class:"court-head" }, [
+        buildCourtLabelField(idx),
+        headRight
       ]);
 
       var body;
@@ -2156,16 +2362,29 @@
               buildCourtPreviewTeamBlock(idx, "Team 2", preview.team2, 2, qp.leftoverQueue)
             ])
           ]);
-          var hasOpenSeatInPreview = preview.team1.concat(preview.team2).some(function(id){ return !id; });
-          if(hasOpenSeatInPreview){
-            var previewAutoBtn = el("button", { type:"button", class:"ghost", style:"margin-top:6px;align-self:stretch;", text:"Auto-fill open seat" });
-            var courtIdxForPreviewFill = idx;
-            previewAutoBtn.addEventListener("click", function(){
-              courtAutofillRequested[courtIdxForPreviewFill] = true;
-              changingCourtPreviewSlot = null;
-              render();
-            });
-            previewWrap.appendChild(previewAutoBtn);
+          var previewIds = preview.team1.concat(preview.team2);
+          var hasOpenSeatInPreview = previewIds.some(function(id){ return !id; });
+          var hasFilledInPreview = previewIds.some(function(id){ return !!id; });
+          if(hasOpenSeatInPreview || hasFilledInPreview){
+            var previewBtnRow = el("div", { style:"display:flex;gap:6px;margin-top:6px;" });
+            if(hasOpenSeatInPreview){
+              var previewAutoBtn = el("button", { type:"button", class:"ghost", style:"flex:1;", text:"Auto-fill open seat" });
+              var courtIdxForPreviewFill = idx;
+              previewAutoBtn.addEventListener("click", function(){
+                courtAutofillRequested[courtIdxForPreviewFill] = true;
+                changingCourtPreviewSlot = null;
+                render();
+              });
+              previewBtnRow.appendChild(previewAutoBtn);
+            }
+            if(hasFilledInPreview){
+              var removeAllBtn = el("button", { type:"button", class:"ghost", style:"flex:1;", text:"Remove all" });
+              removeAllBtn.setAttribute("aria-label", "Remove every previewed player, leaving every seat open");
+              var courtIdxForRemoveAll = idx;
+              removeAllBtn.addEventListener("click", function(){ removeAllCourtPreviewSlots(courtIdxForRemoveAll); });
+              previewBtnRow.appendChild(removeAllBtn);
+            }
+            previewWrap.appendChild(previewBtnRow);
           }
           emptyChildren.push(previewWrap);
         }
@@ -2182,10 +2401,11 @@
         ]);
       }else{
         var teams = teamsForCourt(court);
+        var hasOpenSeatOnCourt = court.players.some(function(pid){ return !pid; });
 
         var teamsWrap = el("div", { class:"teams-wrap" }, [
-          buildTeamBlock("Team 1", teams.team1, idx, 1),
-          buildTeamBlock("Team 2", teams.team2, idx, 2)
+          buildTeamBlock("Team 1", teams.team1, idx, 1, 0),
+          buildTeamBlock("Team 2", teams.team2, idx, 2, teams.team1.length)
         ]);
 
         var timerRow = el("div", { style:"display:flex;justify-content:flex-end;" }, [
@@ -2193,7 +2413,7 @@
         ]);
 
         var actions;
-        if(pendingConfirm.hasOwnProperty(idx)){
+        if(pendingConfirm.hasOwnProperty(idx) && !hasOpenSeatOnCourt){
           var wt = pendingConfirm[idx];
           var winnerIds = wt === 1 ? teams.team1 : teams.team2;
           var winnerNames = winnerIds.map(function(pid){ return state.players[pid].name; }).join(" & ");
@@ -2211,6 +2431,13 @@
           var confirmBtns = actions.children[1];
           confirmBtns.children[0].addEventListener("click", function(){ cancelEndGameConfirm(idx); });
           confirmBtns.children[1].addEventListener("click", function(){ confirmEndGame(idx); });
+        }else if(hasOpenSeatOnCourt){
+          // Can't declare a winner with a seat still open — someone was
+          // removed mid-game and hasn't been replaced yet (see
+          // removeCourtPlayer / the "+ Choose" chip above).
+          actions = el("div", { class:"court-actions", style:"justify-content:center;" }, [
+            el("span", { class:"need", text:"Fill the open seat before ending this game" })
+          ]);
         }else{
           actions = el("div", { class:"court-actions team-actions" }, [
             el("button", { class:"team1-btn", type:"button", text:"Team 1 Wins" }),
@@ -2229,6 +2456,16 @@
 
       grid.appendChild(el("div", { class:"court" + (isOpen ? " open" : "") }, [ head, body ]));
     });
+
+    if(state.courts.length < 8){
+      var addTile = el("button", { type:"button", class:"court add-court-tile" }, [
+        el("span", { class:"plus-icon", text:"+" }),
+        el("span", { text:"Add court" })
+      ]);
+      addTile.setAttribute("aria-label", "Add another court");
+      addTile.addEventListener("click", function(){ addCourt(); });
+      grid.appendChild(addTile);
+    }
 
     return qp.leftoverQueue;
   }
@@ -2327,10 +2564,12 @@
   // A manual override is only honored while it still makes sense. Each
   // filled-in slot has to still be a waiting, non-maxed-out queue member
   // and not duplicated elsewhere in the same card — anything that no
-  // longer qualifies (or an explicitly removed slot) reverts to null,
-  // an "open seat" that fillNullSlotsForMatch will auto-fill on this
-  // render. Returns null (dropping the override entirely, back to full
-  // auto-fill) only once every one of its slots has gone empty.
+  // longer qualifies (or an explicitly removed slot) reverts to null, an
+  // "open seat" that stays open — shown with a "+ Choose" button — until
+  // someone's picked by hand or an Auto-fill button is used, even once
+  // every slot on the card has gone empty (e.g. after "Remove all
+  // players"). The card only goes back to full auto-pick once its
+  // override is deleted outright (see the "Auto-fill" button handlers).
   function normalizeUpcomingOverride(override){
     if(!override) return null;
     var ids = override.team1.concat(override.team2);
@@ -2345,8 +2584,6 @@
     }
     var team1 = override.team1.map(cleanSlot);
     var team2 = override.team2.map(cleanSlot);
-    var hasAny = team1.concat(team2).some(function(id){ return !!id; });
-    if(!hasAny) return null;
     return { team1: team1, team2: team2 };
   }
 
@@ -2624,6 +2861,22 @@
     render();
   }
 
+  // Clears every slot in an open court's own preview at once — all 4
+  // become "Open seat" placeholders rather than snapping back to the
+  // algorithm's own pick (see normalizeUpcomingOverride), so there's a
+  // clean slate to build the next match on by hand, or hand straight back
+  // to "Auto-fill open seat" when that's easier.
+  function removeAllCourtPreviewSlots(courtIndex){
+    var current = courtPreviewOverrides[courtIndex] || lastCourtPreviews[courtIndex];
+    if(!current){ render(); return; }
+    courtPreviewOverrides[courtIndex] = {
+      team1: current.team1.map(function(){ return null; }),
+      team2: current.team2.map(function(){ return null; })
+    };
+    changingCourtPreviewSlot = null;
+    render();
+  }
+
   // The "Upcoming Matches" strip, just below the playing courts — a
   // forward look at the matchups coming up after whatever's already
   // previewed on the open courts above, so there's always something to
@@ -2645,7 +2898,10 @@
     var countEl = document.getElementById("queueCourtsCount");
     grid.innerHTML = "";
 
-    var maxCards = 5;
+    // Matches the number of courts on the board — with N courts set, the
+    // "what's coming after the courts that are open right now" look-ahead
+    // is also N matches deep, never a fixed count unrelated to the setup.
+    var maxCards = state.courts.length;
     var teamSize = Math.max(1, Math.floor(state.playersPerCourt / 2));
 
     // Overrides were already cleaned this render (cleanAllOverrides, in
